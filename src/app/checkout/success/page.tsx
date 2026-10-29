@@ -11,7 +11,7 @@ type Props = { searchParams: Promise<{ order?: string }> };
 export default async function SuccessPage({ searchParams }: Props) {
   const { order: number } = await searchParams;
   const order = number
-    ? await db.order.findUnique({ where: { number }, include: { items: true } })
+    ? await db.order.findUnique({ where: { number }, include: { items: true, payments: { select: { id: true } } } })
     : null;
 
   if (!order) {
@@ -23,19 +23,23 @@ export default async function SuccessPage({ searchParams }: Props) {
     );
   }
   const paid = order.status !== 'PENDING_PAYMENT' && order.status !== 'CANCELLED';
+  // No gateway payment was started: the team confirms stock and sends a payment link.
+  const awaitingLink = !paid && order.payments.length === 0;
 
   return (
     <div className="container-page py-12">
       <ClearCart />
-      {!paid && <RefreshWhilePending />}
+      {!paid && !awaitingLink && <RefreshWhilePending />}
       <div className="card mx-auto max-w-xl space-y-5 p-8 text-center">
         {paid ? <CircleCheck className="mx-auto size-14 text-emerald-600" /> : <Clock className="mx-auto size-14 text-brand-600" />}
         <div>
-          <h1 className="text-2xl font-bold">{paid ? 'Thank you, your order is confirmed' : 'Confirming your payment…'}</h1>
+          <h1 className="text-2xl font-bold">{paid ? 'Thank you, your order is confirmed' : awaitingLink ? 'Thank you, we’ve received your order' : 'Confirming your payment…'}</h1>
           <p className="mt-1 text-slate-600">Order <strong className="font-mono">{order.number}</strong></p>
         </div>
         <p className="text-sm text-slate-600">
-          {paid
+          {awaitingLink
+            ? `We’re confirming stock with the seller now. We’ll send a secure payment link to ${order.email} and your phone, and your parts ship as soon as payment is received.`
+            : paid
             ? `Keep your order number handy. We’ll contact you at ${order.email} with tracking details as soon as your parts ship.`
             : 'PayFast is confirming your payment. This usually takes a few seconds and this page will update by itself.'}
         </p>

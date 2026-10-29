@@ -10,3 +10,4 @@ dist
 deploy
 *.log
 *.tsbuildinfo
+uploads

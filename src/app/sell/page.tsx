@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import Link from 'next/link';
 import { BadgeCheck, Banknote, Truck, Users } from 'lucide-react';
 import { COMPANY } from '@/data/company';
 
@@ -22,8 +23,13 @@ export default function SellPage() {
       <div className="rounded-2xl bg-navy-900 p-8 text-white sm:p-12">
         <h1 className="max-w-2xl text-3xl font-black sm:text-4xl">Sell your parts to buyers across South Africa</h1>
         <p className="mt-3 max-w-xl text-white/80">Spares shops, importers, dealers and salvage yards: list on WHATPART and reach customers far beyond your town.</p>
-        <a href={`mailto:${COMPANY.email}?subject=${subject}&body=${body}`} className="btn-primary mt-6 px-6 py-3 text-base">Apply to sell</a>
-        <p className="mt-3 text-sm text-white/60">The self-service seller portal is coming soon. Until then, apply by email and we’ll onboard you personally.</p>
+        <div className="mt-6 flex flex-wrap items-center gap-3">
+          <Link href="/sell/apply" className="btn-primary px-6 py-3 text-base">Apply to sell</Link>
+          <Link href="/seller" className="btn bg-white/10 px-6 py-3 text-base text-white hover:bg-white/20">Seller sign in</Link>
+        </div>
+        <p className="mt-3 text-sm text-white/60">
+          Questions first? <a href={`mailto:${COMPANY.email}?subject=${subject}&body=${body}`} className="underline">Email us</a>.
+        </p>
       </div>
       <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {POINTS.map(([Icon, title, text]) => (

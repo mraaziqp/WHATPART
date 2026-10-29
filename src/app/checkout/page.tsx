@@ -2,6 +2,7 @@
 
 import { useRef, useState, useTransition } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { Loader2, Lock, ShieldCheck } from 'lucide-react';
 import { useCart } from '@/lib/cart-store';
 import { useResolvedCart } from '@/components/cart/useResolvedCart';
@@ -22,6 +23,8 @@ export default function CheckoutPage() {
   const [pending, startTransition] = useTransition();
   const [payment, setPayment] = useState<{ action: string; fields: [string, string][] } | null>(null);
   const payForm = useRef<HTMLFormElement>(null);
+  const router = useRouter();
+  const [placed, setPlaced] = useState(false);
 
   const delivery = shippingCents(shipping, subtotalCents);
   const total = subtotalCents + delivery;
@@ -38,13 +41,18 @@ export default function CheckoutPage() {
         return;
       }
       setErrors({});
+      if (!res.payment) {
+        setPlaced(true);
+        router.push(`/checkout/success?order=${res.orderNumber}`);
+        return;
+      }
       setPayment(res.payment);
       // Submit the signed form to PayFast's hosted payment page once it has rendered.
       requestAnimationFrame(() => payForm.current?.submit());
     });
   };
 
-  if (!loading && (!items || items.length === 0) && !payment) {
+  if (!loading && (!items || items.length === 0) && !payment && !placed) {
     return (
       <div className="container-page py-16 text-center">
         <p className="mb-4 text-lg font-semibold">Your cart is empty.</p>
@@ -136,12 +144,12 @@ export default function CheckoutPage() {
             <div className="flex justify-between border-t border-slate-100 pt-2 text-base font-bold"><dt>Total</dt><dd>{rand(total)}</dd></div>
           </dl>
           {error && <p className="rounded-lg bg-red-50 p-3 text-sm text-red-700">{error}</p>}
-          <button type="submit" disabled={pending || loading || !!payment} className="btn-primary w-full py-3 text-base">
-            {pending || payment ? <><Loader2 className="size-5 animate-spin" /> Connecting to PayFast…</> : <>Pay {rand(total)}</>}
+          <button type="submit" disabled={pending || loading || !!payment || placed} className="btn-primary w-full py-3 text-base">
+            {pending || payment || placed ? <><Loader2 className="size-5 animate-spin" /> Placing order…</> : <>Place order · {rand(total)}</>}
           </button>
           <p className="flex items-start gap-2 text-xs text-slate-500">
             <ShieldCheck className="size-4 shrink-0 text-emerald-600" />
-            You’ll pay on PayFast’s secure page by card, instant EFT, SnapScan and more. We never see your card details.
+            You’ll pay securely online once we’ve confirmed stock. We never see or store your card details.
           </p>
           <p className="text-xs text-slate-500">
             By placing your order you agree to our <Link href="/terms" className="underline">terms</Link> and <Link href="/returns" className="underline">returns policy</Link>.

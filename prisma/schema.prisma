@@ -243,6 +243,8 @@ model Product {
   ratingAvg   Float          @default(0)
   ratingCount Int            @default(0)
   active      Boolean        @default(true)
+  createdById String? // seller who added it to the catalogue; they may edit it
+  createdBy   Seller?        @relation("SellerProducts", fields: [createdById], references: [id], onDelete: SetNull)
   createdAt   DateTime       @default(now())
   updatedAt   DateTime       @updatedAt
 
@@ -290,6 +292,9 @@ model Seller {
   slug          String          @unique
   ownerId       String?
   owner         User?           @relation(fields: [ownerId], references: [id])
+  contactName   String?
+  phone         String?
+  email         String?
   type          SellerType
   city          String
   province      String
@@ -305,6 +310,7 @@ model Seller {
   offers        Offer[]
   orderItems    OrderItem[]
   quoteReplies  QuoteResponse[]
+  products      Product[]       @relation("SellerProducts")
 }
 
 enum Condition {
@@ -431,6 +437,7 @@ model OrderItem {
   quantity     Int
   status       ItemStatus @default(PENDING)
   trackingRef  String?
+  cancelReason String?
 
   @@index([orderId])
   @@index([sellerId])
@@ -439,6 +446,7 @@ model OrderItem {
 enum PaymentProvider {
   PAYFAST
   OZOW
+  MANUAL // payment link / EFT confirmed by an admin
 }
 
 enum PaymentStatus {
@@ -518,4 +526,6 @@ model QuoteResponse {
   condition  Condition
   notes      String?
   createdAt  DateTime     @default(now())
+
+  @@unique([requestId, sellerId])
 }

@@ -21,6 +21,21 @@ Takealot or Amazon. **Fitments** link products to **Vehicles** (model + engine +
 shopper's selected vehicle (cookie `wp_vehicle`) filters search and drives the "fits / doesn't fit" checks.
 **Deals** are time-boxed offer prices. Orders snapshot titles and prices at purchase. Money is integer cents.
 
+## Marketplace operations
+
+- **Sellers** apply at `/sell/apply`, then manage everything at `/seller`: list parts from the catalogue
+  (search first, so every seller competes on one product page), add new parts with photos and fitment,
+  update price and stock, confirm and ship orders, and quote on part requests. Buyers' street addresses are
+  only shown to sellers once an order is paid.
+- **Admins** work at `/admin` (404 for everyone else): approve or suspend sellers, mark orders paid with a
+  payment reference, cancel orders, mark deliveries, and forward part-request quotes to buyers.
+  Make someone an admin after they register:
+  `cd /opt/whatpart && docker compose run --rm tools npx tsx scripts/make-admin.ts their@email.com`
+- **Payments**: until a gateway is approved, checkout takes orders as *awaiting payment* and the team sends
+  a payment link, then marks the order paid in `/admin`. `PAYMENT_GATEWAY=payfast` in `app.env` switches
+  checkout to PayFast's hosted page (with merchant credentials set).
+- **Photos** are re-encoded to WebP (EXIF/GPS stripped) and stored in `/opt/whatpart/data/uploads`.
+
 ## Local development
 
 The local app talks to the VPS database and search through an SSH tunnel:
@@ -48,7 +63,7 @@ npm run dev             # http://localhost:3000
 ```
 
 Production settings live in `/opt/whatpart/app.env` on the VPS (not in git):
-`SHOW_DEMO_SELLERS` (hide seeded demo stock with `false`) and the `PAYFAST_*` merchant credentials.
+`SHOW_DEMO_SELLERS` (hide seeded demo stock with `false`), `PAYMENT_GATEWAY` and the `PAYFAST_*` merchant credentials.
 
 ## Demo data
 

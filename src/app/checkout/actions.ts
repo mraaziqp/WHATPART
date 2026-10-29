@@ -26,8 +26,12 @@ const CheckoutInput = z.object({
 
 export type CheckoutInput = z.infer<typeof CheckoutInput>;
 export type CheckoutResult =
-  | { ok: true; orderNumber: string; payment: { action: string; fields: [string, string][] } }
+  | { ok: true; orderNumber: string; payment: { action: string; fields: [string, string][] } | null }
   | { ok: false; error: string; fieldErrors?: Record<string, string> };
+
+// Until a payment gateway is approved, orders are taken as 'awaiting payment' and paid via a link
+// the team sends; set PAYMENT_GATEWAY=payfast to send customers to PayFast instead.
+const onlinePayments = () => process.env.PAYMENT_GATEWAY === 'payfast';
 
 const ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 const orderNumber = () => `WP-${Array.from({ length: 7 }, () => ALPHABET[randomInt(ALPHABET.length)]).join('')}`;
@@ -72,9 +76,11 @@ export async function placeOrder(raw: CheckoutInput): Promise<CheckoutResult> {
           condition: i.condition, unitCents: i.unitCents, quantity: i.quantity,
         })),
       },
-      payments: { create: { provider: 'PAYFAST', amountCents: total } },
+      ...(onlinePayments() ? { payments: { create: { provider: 'PAYFAST' as const, amountCents: total } } } : {}),
     },
   });
+
+  if (!onlinePayments()) return { ok: true, orderNumber: number, payment: null };
 
   const [firstName, ...rest] = input.fullName.split(/\s+/);
   const payment = buildPaymentForm({
