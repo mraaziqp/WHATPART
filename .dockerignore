@@ -11,3 +11,4 @@ deploy
 *.log
 *.tsbuildinfo
 uploads
+ops

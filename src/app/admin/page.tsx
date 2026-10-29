@@ -1,12 +1,12 @@
 import Link from 'next/link';
 import { db } from '@/lib/db';
 import { requireAdminPage } from '@/lib/guards';
-import { formatRand } from '@/lib/format';
+import { daysAgo, formatRand } from '@/lib/format';
 import { showDemoSellers } from '@/lib/catalog';
 
 export default async function AdminOverview() {
   await requireAdminPage();
-  const since = new Date(Date.now() - 30 * 86400000);
+  const since = daysAgo(30);
   const [awaitingPayment, toShip, pendingSellers, openRequests, paid30, customers, liveOffers] = await Promise.all([
     db.order.count({ where: { status: 'PENDING_PAYMENT' } }),
     db.order.count({ where: { status: { in: ['PAID', 'PROCESSING'] } } }),

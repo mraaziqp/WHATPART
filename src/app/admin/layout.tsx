@@ -3,7 +3,7 @@ import { requireAdminPage } from '@/lib/guards';
 
 export const metadata = { title: 'Admin', robots: { index: false } };
 
-const NAV = [['/admin', 'Overview'], ['/admin/orders', 'Orders'], ['/admin/sellers', 'Sellers'], ['/admin/requests', 'Part requests']] as const;
+const NAV = [['/admin', 'Overview'], ['/admin/orders', 'Orders'], ['/admin/sellers', 'Sellers'], ['/admin/deals', 'Deals'], ['/admin/requests', 'Part requests']] as const;
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   await requireAdminPage();

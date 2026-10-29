@@ -1,13 +1,13 @@
 import Link from 'next/link';
 import { db } from '@/lib/db';
 import { requireSellerPage } from '@/lib/guards';
-import { formatRand } from '@/lib/format';
+import { daysAgo, formatRand } from '@/lib/format';
 
 export default async function SellerDashboard() {
   const { seller } = await requireSellerPage('/seller');
   if (seller.status !== 'ACTIVE') return null;
 
-  const since = new Date(Date.now() - 30 * 86400000);
+  const since = daysAgo(30);
   const [listings, stock, toConfirm, toShip, openRequests, sold, lowStock] = await Promise.all([
     db.offer.count({ where: { sellerId: seller.id, active: true } }),
     db.offer.aggregate({ where: { sellerId: seller.id, active: true }, _sum: { stock: true } }),

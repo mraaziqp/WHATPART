@@ -1,5 +1,6 @@
 'use client';
 
+import { useSyncExternalStore } from 'react';
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
@@ -40,3 +41,10 @@ export const useCart = create<CartState>()(
 );
 
 export const useCartCount = () => useCart((s) => s.lines.reduce((n, l) => n + l.quantity, 0));
+
+// zustand only attaches `persist` when storage exists, so it is undefined during SSR.
+const subscribeHydration = (cb: () => void) => useCart.persist?.onFinishHydration(cb) ?? (() => {});
+const isHydrated = () => useCart.persist?.hasHydrated() ?? false;
+
+/** False during SSR and the first client render, true once the cart has loaded from localStorage. */
+export const useCartHydrated = () => useSyncExternalStore(subscribeHydration, isHydrated, () => false);

@@ -7,12 +7,12 @@ const PROMISES = [
   { icon: ShieldCheck, title: 'Fitment guarantee', text: 'Wrong part for the vehicle you gave us? Free return and full refund.' },
   { icon: Truck, title: 'Nationwide delivery', text: 'Door-to-door or Pargo pickup. Free over R1,500.' },
   { icon: RotateCcw, title: '7-day returns', text: 'Change your mind on unused parts within 7 days.' },
-  { icon: Lock, title: 'Secure payment', text: 'Card, instant EFT and more via PayFast and Ozow.' },
+  { icon: Lock, title: 'Secure payment', text: 'Pay safely online. We never see or store your card details.' },
 ];
 
 const LINKS: { title: string; links: [string, string][] }[] = [
   { title: 'Shop', links: [['Daily deals', '/deals'], ['All parts', '/search'], ['Request a part', '/quote']] },
-  { title: 'Help', links: [['Contact us', '/contact'], ['Delivery', '/shipping'], ['Returns & refunds', '/returns']] },
+  { title: 'Help', links: [['Track your order', '/track'], ['Contact us', '/contact'], ['Delivery', '/shipping'], ['Returns & refunds', '/returns']] },
   { title: 'Company', links: [['About WHATPART', '/about'], ['Sell on WHATPART', '/sell'], ['Terms & conditions', '/terms'], ['Privacy policy', '/privacy']] },
 ];
 

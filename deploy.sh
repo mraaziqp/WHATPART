@@ -6,12 +6,17 @@
 #   search  Meilisearch          data in ./data/meili
 #   app     this Next.js app     built from ./app, env from ./app.env
 #   tools   one-off container for migrations / reindexing (profile "tools")
+# Server config lives in ./ops. Deploys install the compose file and backup script; scheduled
+# jobs (cron) are only installed on request with install-schedule.
 # Caddy (in the n8n stack at /opt/n8n) joins the "whatpart" network and proxies
 # whatpart.africa to whatpart-app:3000 with automatic HTTPS.
 #
-# Usage: ./deploy.sh             upload, build, migrate, restart, health-check
-#        ./deploy.sh rollback    restart on the previously deployed image
-#        ./deploy.sh reindex     rebuild the search index from the database
+# Usage: ./deploy.sh                   upload, build, migrate, restart, health-check
+#        ./deploy.sh rollback          restart on the previously deployed image
+#        ./deploy.sh reindex           rebuild the search index from the database
+#        ./deploy.sh backup            run a database + photo backup now
+#        ./deploy.sh install-schedule  install the cron jobs in ops/whatpart.cron (opt-in)
+#        ./deploy.sh remove-schedule   remove them again
 set -euo pipefail
 
 HOST="${DEPLOY_HOST:-root@169.58.243.163}"
@@ -36,15 +41,35 @@ case "${1:-deploy}" in
     "${SSH[@]}" "cd $REMOTE && docker compose run --rm tools npx tsx scripts/reindex.ts"
     exit 0
     ;;
+  backup)
+    "${SSH[@]}" "$REMOTE/ops/backup.sh"
+    exit 0
+    ;;
+  install-schedule)
+    # Opt-in: installs ops/whatpart.cron (nightly backups, nightly reindex, 15-minute deal refresh).
+    "${SSH[@]}" "set -e; install -m 644 $REMOTE/app/ops/whatpart.cron /etc/cron.d/whatpart
+      install -m 644 $REMOTE/app/ops/logrotate /etc/logrotate.d/whatpart; echo schedule installed"
+    exit 0
+    ;;
+  remove-schedule)
+    "${SSH[@]}" "rm -f /etc/cron.d/whatpart /etc/logrotate.d/whatpart; echo schedule removed"
+    exit 0
+    ;;
 esac
 
 cd "$(dirname "$0")"
 echo "--> Uploading source to $HOST"
 tar --exclude=node_modules --exclude=.next --exclude=.git --exclude='.env*' --exclude=src/generated \
-    --exclude=dist --exclude=public/uploads -czf - . |
+    --exclude=dist --exclude=public/uploads --exclude=uploads --exclude='*.log' -czf - . |
   "${SSH[@]}" "set -e; rm -rf $REMOTE/app.new; mkdir -p $REMOTE/app.new
     tar -xzf - -C $REMOTE/app.new
     rm -rf $REMOTE/app; mv $REMOTE/app.new $REMOTE/app"
+
+echo "--> Installing server config (compose file, backup script)"
+"${SSH[@]}" "set -e; cd $REMOTE
+  install -m 600 app/ops/docker-compose.yml docker-compose.yml
+  install -d -m 700 ops && install -m 700 app/ops/backup.sh ops/backup.sh
+  docker compose config -q"
 
 echo "--> Building image"
 "${SSH[@]}" "set -e; cd $REMOTE
@@ -55,6 +80,7 @@ echo "--> Applying database migrations"
 "${SSH[@]}" "cd $REMOTE && docker compose run --rm tools npx prisma migrate deploy"
 
 echo "--> Restarting app"
-"${SSH[@]}" "cd $REMOTE && docker compose up -d app && docker image prune -f >/dev/null"
+# db/search are only recreated if their compose config changed.
+"${SSH[@]}" "cd $REMOTE && docker compose up -d db search app && docker image prune -f >/dev/null"
 health
 echo "--> Live: https://whatpart.africa"

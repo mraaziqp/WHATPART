@@ -6,6 +6,7 @@
  */
 import 'dotenv/config';
 import { PrismaPg } from '@prisma/adapter-pg';
+import { slugify } from '../src/lib/slug.ts';
 import { PrismaClient, type BrandTier, type Condition, type FuelType, type Prisma, type Seller, type SellerType } from '../src/generated/prisma/client.ts';
 
 const db = new PrismaClient({ adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL! }) });
@@ -15,8 +16,6 @@ let rngState = 20261029;
 const rand = () => ((rngState = (rngState * 1664525 + 1013904223) % 4294967296) / 4294967296);
 const pick = <T,>(arr: T[]) => arr[Math.floor(rand() * arr.length)];
 const shuffle = <T,>(arr: T[]) => [...arr].sort(() => rand() - 0.5);
-const slugify = (s: string) =>
-  s.toLowerCase().normalize('NFKD').replace(/[^\w\s-]/g, '').replace(/[\s_]+/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
 const toPrice = (rands: number) => Math.max(49, Math.round(rands / 10) * 10 - 1) * 100; // R1,299-style endings
 
 // ─── Vehicles ───────────────────────────────────────────────────────────────

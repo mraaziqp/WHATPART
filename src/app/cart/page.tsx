@@ -1,12 +1,12 @@
 'use client';
 
+import { formatRand } from '@/lib/format';
 import Link from 'next/link';
 import { Loader2, ShoppingCart, Trash2, Truck } from 'lucide-react';
 import { useCart } from '@/lib/cart-store';
 import { useResolvedCart } from '@/components/cart/useResolvedCart';
 import { FREE_DELIVERY_CENTS } from '@/lib/shipping';
 
-const rand = (c: number) => `R ${(c / 100).toLocaleString('en-ZA', { minimumFractionDigits: c % 100 ? 2 : 0 })}`;
 
 export default function CartPage() {
   const { setQuantity, remove } = useCart();
@@ -55,18 +55,18 @@ export default function CartPage() {
                 </div>
               </div>
               <div className="text-right">
-                <p className="font-bold">{rand(i.unitCents * i.quantity)}</p>
-                {i.quantity > 1 && <p className="text-xs text-slate-500">{rand(i.unitCents)} each</p>}
+                <p className="font-bold">{formatRand(i.unitCents * i.quantity)}</p>
+                {i.quantity > 1 && <p className="text-xs text-slate-500">{formatRand(i.unitCents)} each</p>}
               </div>
             </li>
           ))}
         </ul>
 
         <aside className="card h-fit space-y-4 p-5 lg:sticky lg:top-36">
-          <div className="flex justify-between text-sm"><span>Subtotal</span><span className="font-semibold">{rand(subtotalCents)}</span></div>
+          <div className="flex justify-between text-sm"><span>Subtotal</span><span className="font-semibold">{formatRand(subtotalCents)}</span></div>
           <p className="flex items-center gap-2 rounded-lg bg-emerald-50 p-3 text-sm text-emerald-900">
             <Truck className="size-4 shrink-0" />
-            {toFree > 0 ? <>Add {rand(toFree)} more for free delivery</> : <>You qualify for free delivery</>}
+            {toFree > 0 ? <>Add {formatRand(toFree)} more for free delivery</> : <>You qualify for free delivery</>}
           </p>
           <p className="text-xs text-slate-500">Delivery options and fees are shown at checkout. Prices include all charges.</p>
           {blocked ? (

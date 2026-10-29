@@ -20,6 +20,9 @@ const PRICE_RANGES: [string, number | undefined, number | undefined][] = [
   ['Under R500', undefined, 500], ['R500 – R1,000', 500, 1000], ['R1,000 – R2,500', 1000, 2500], ['Over R2,500', 2500, undefined],
 ];
 
+const Check = ({ on }: { on: boolean }) =>
+  on ? <CheckSquare className="size-4 shrink-0 text-navy-800" /> : <Square className="size-4 shrink-0 text-slate-400" />;
+
 function toParams(f: Filters, lockedParams: string[]) {
   const p: Record<string, string> = {};
   if (f.q) p.q = f.q;
@@ -56,7 +59,6 @@ export async function SearchResults({ basePath, filters: f, vehicle, categoryNam
   const catFacet = categoryFacet ? Object.entries(res.facets[categoryFacet] ?? {}).sort((a, b) => b[1] - a[1]) : [];
   const anyFilter = f.brands.length || f.conds.length || f.min || f.max || f.inStock || (f.cat && !lockedParams.includes('cat'));
 
-  const Check = ({ on }: { on: boolean }) => (on ? <CheckSquare className="size-4 shrink-0 text-navy-800" /> : <Square className="size-4 shrink-0 text-slate-400" />);
   const sidebar = (
     <div className="space-y-6 text-sm">
       {vehicle && (
@@ -149,7 +151,7 @@ export async function SearchResults({ basePath, filters: f, vehicle, categoryNam
       <div>
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
           <p className="text-sm text-slate-600">
-            <strong className="text-slate-900">{res.total.toLocaleString('en-ZA')}</strong> {res.total === 1 ? 'part' : 'parts'}
+            <strong className="text-slate-900">{res.total.toLocaleString('en-US')}</strong> {res.total === 1 ? 'part' : 'parts'}
             {f.q && <> for “<strong className="text-slate-900">{f.q}</strong>”</>}
             {vehicle && f.fit && <> that fit your <strong className="text-slate-900">{vehicle.model}</strong></>}
           </p>

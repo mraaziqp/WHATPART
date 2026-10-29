@@ -102,7 +102,7 @@ export const InfoPageView: React.FC<InfoPageProps> = ({ page }) => {
                 'New OEM, aftermarket and quality used parts for most makes and models sold in South Africa',
                 'Search by vehicle, VIN or OEM part number to find parts that fit',
                 'Request-a-quote for hard-to-find parts, answered by our supplier network',
-                'Secure online payment through PayFast and Ozow',
+                'Secure online payment through a registered South African payment provider',
                 'Nationwide delivery by courier or to a Pargo pickup point',
               ]}
             />
@@ -176,8 +176,8 @@ export const InfoPageView: React.FC<InfoPageProps> = ({ page }) => {
         <>
           <Section title="1. About these terms">
             <p>
-              These terms apply to every purchase made on {COMPANY.website} (the "Site"), operated by {COMPANY.legalName}
-              ("{COMPANY.tradingName}", "we", "us"). By placing an order you agree to these terms, our{' '}
+              These terms apply to every purchase made on {COMPANY.website} (the “Site”), operated by {COMPANY.legalName}
+              (“{COMPANY.tradingName}”, “we”, “us”). By placing an order you agree to these terms, our{' '}
               <PageLink to="privacy">Privacy Policy</PageLink>,{' '}
               <PageLink to="returns">Returns and Refunds Policy</PageLink> and{' '}
               <PageLink to="shipping">Delivery Policy</PageLink>. Nothing in these terms limits
@@ -205,7 +205,7 @@ export const InfoPageView: React.FC<InfoPageProps> = ({ page }) => {
                   ? 'Prices include VAT at the current rate.'
                   : `${COMPANY.legalName} is not currently registered for VAT, so no VAT is charged.`,
                 'Delivery fees are shown at checkout before you pay.',
-                'Payment is processed securely by PayFast (card, instant EFT and other methods) or Ozow (instant EFT). We never see or store your full card details.',
+                'Payment is processed securely by our payment provider (card, instant EFT and other methods). We never see or store your full card details.',
                 'An order is accepted only once payment has been confirmed by the payment provider and we have sent you an order confirmation.',
                 'If a price or stock error occurs, we will contact you before dispatch and you may cancel for a full refund.',
               ]}
@@ -269,7 +269,7 @@ export const InfoPageView: React.FC<InfoPageProps> = ({ page }) => {
               ]}
             />
             <p>
-              We do not collect or store card numbers. Payments are processed directly by PayFast or Ozow under their own
+              We do not collect or store card numbers. Payments are processed directly by our payment provider under its own
               privacy policies and PCI DSS security standards.
             </p>
           </Section>
@@ -360,7 +360,7 @@ export const InfoPageView: React.FC<InfoPageProps> = ({ page }) => {
           </Section>
           <Section title="6. Refunds">
             <p>
-              Refunds are paid to the original payment method (card refunds through PayFast, EFT refunds to the bank account
+              Refunds are paid to the original payment method (card refunds to the card used, EFT refunds to the bank account
               you paid from) within 30 days of our receiving the returned part, usually within 7 business days. Original
               delivery fees are refunded when the return is due to our error or a defect.
             </p>

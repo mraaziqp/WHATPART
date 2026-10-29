@@ -36,6 +36,8 @@ export type ProductDoc = {
   ratingAvg: number;
   ratingCount: number;
   hasDeal: boolean;
+  /** End of the deal that sets priceCents (ms), so an expired deal can be corrected without reindexing. */
+  dealEndsAt: number | null;
   createdAt: number;
 };
 
@@ -43,7 +45,7 @@ export const productsIndex = (): Index<ProductDoc> => meili.index<ProductDoc>('p
 
 export const INDEX_SETTINGS = {
   searchableAttributes: ['title', 'partNumber', 'oemNumbers', 'brand', 'category', 'parentCategory', 'vehicles', 'specText'],
-  filterableAttributes: ['id', 'vehicleIds', 'universal', 'categorySlug', 'parentSlug', 'brand', 'conditions', 'inStock', 'priceCents', 'hasDeal', 'makes', 'ratingAvg'],
+  filterableAttributes: ['id', 'vehicleIds', 'universal', 'categorySlug', 'parentSlug', 'brand', 'conditions', 'inStock', 'priceCents', 'hasDeal', 'dealEndsAt', 'makes', 'ratingAvg'],
   sortableAttributes: ['priceCents', 'ratingAvg', 'createdAt', 'dispatchDays'],
   rankingRules: ['words', 'typo', 'proximity', 'attribute', 'sort', 'exactness', 'inStock:desc'],
   synonyms: {
@@ -84,6 +86,7 @@ export function toDoc(p: IndexedProduct): ProductDoc | null {
   const inStock = priced.filter((o) => o.stock > 0);
   const pool = inStock.length ? inStock : priced;
   const best = pool.reduce((a, b) => (b.effective < a.effective ? b : a));
+  const bestDeal = best.deals.length ? best.deals.reduce((a, b) => (b.priceCents < a.priceCents ? b : a)) : null;
   const vehicles = p.fitments.map((f) => f.vehicle);
   return {
     id: p.id,
@@ -111,9 +114,20 @@ export function toDoc(p: IndexedProduct): ProductDoc | null {
     dispatchDays: Math.min(...pool.map((o) => o.dispatchDays)),
     ratingAvg: p.ratingAvg,
     ratingCount: p.ratingCount,
-    hasDeal: priced.some((o) => o.deals.length > 0),
+    // Only when the price shown comes from a deal, so the badge, /deals and the price agree.
+    hasDeal: bestDeal !== null,
+    dealEndsAt: bestDeal ? bestDeal.endsAt.getTime() : null,
     createdAt: p.createdAt.getTime(),
   };
+}
+
+/**
+ * Index entries store deal prices. If the deal has since ended (and the entry hasn't been
+ * reindexed yet), show the normal price instead so search never advertises an expired deal.
+ */
+export function liveDoc(doc: ProductDoc, now = Date.now()): ProductDoc {
+  if (!doc.dealEndsAt || doc.dealEndsAt > now) return doc;
+  return { ...doc, priceCents: doc.compareAtCents ?? doc.priceCents, compareAtCents: null, hasDeal: false, dealEndsAt: null };
 }
 
 /** Push one product's current state to the index (call after offer/price/stock changes). */

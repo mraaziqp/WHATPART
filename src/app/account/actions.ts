@@ -5,6 +5,7 @@ import { z } from 'zod';
 import { db } from '@/lib/db';
 import { getSessionUser } from '@/lib/session';
 import { reindexProduct } from '@/lib/search';
+import { normaliseVin, VIN_PATTERN } from '@/lib/vin';
 
 export type FormResult = { ok?: string; error?: string };
 
@@ -29,15 +30,18 @@ export async function toggleWishlist(productId: string): Promise<{ saved?: boole
 // ─── Garage ─────────────────────────────────────────────────────────────────
 
 /** Called whenever a signed-in shopper picks a vehicle, so it's waiting in their garage next time. */
-export async function rememberVehicle(vehicleId: string, year: number) {
+export async function rememberVehicle(vehicleId: string, year: number, vin?: string) {
   const user = await getSessionUser();
   if (!user) return;
   const vehicle = await db.vehicle.findUnique({ where: { id: vehicleId }, select: { yearFrom: true, yearTo: true } });
   if (!vehicle || year < vehicle.yearFrom || year > (vehicle.yearTo ?? new Date().getFullYear() + 1)) return;
+  const cleanVin = vin && VIN_PATTERN.test(normaliseVin(vin)) ? normaliseVin(vin) : null;
   const existing = await db.garageVehicle.findFirst({ where: { userId: user.id, vehicleId, year } });
-  const count = await db.garageVehicle.count({ where: { userId: user.id } });
-  if (!existing && count < 20) {
-    await db.garageVehicle.create({ data: { userId: user.id, vehicleId, year, isPrimary: count === 0 } });
+  if (existing) {
+    if (cleanVin && existing.vin !== cleanVin) await db.garageVehicle.update({ where: { id: existing.id }, data: { vin: cleanVin } });
+  } else {
+    const count = await db.garageVehicle.count({ where: { userId: user.id } });
+    if (count < 20) await db.garageVehicle.create({ data: { userId: user.id, vehicleId, year, vin: cleanVin, isPrimary: count === 0 } });
   }
   revalidatePath('/account/garage');
 }
@@ -45,7 +49,7 @@ export async function rememberVehicle(vehicleId: string, year: number) {
 const GarageEdit = z.object({
   id: z.string().min(1),
   nickname: z.string().trim().max(40).optional(),
-  vin: z.string().trim().toUpperCase().refine((v) => v === '' || /^[A-HJ-NPR-Z0-9]{17}$/.test(v), 'A VIN is 17 letters and numbers (no I, O or Q)').optional(),
+  vin: z.string().transform(normaliseVin).refine((v) => v === '' || VIN_PATTERN.test(v), 'A VIN is 17 letters and numbers (no I, O or Q)').optional(),
 });
 
 export async function updateGarageVehicle(_prev: FormResult, form: FormData): Promise<FormResult> {

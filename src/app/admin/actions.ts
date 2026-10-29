@@ -1,6 +1,7 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
+import { z } from 'zod';
 import { db } from '@/lib/db';
 import { requireAdmin } from '@/lib/guards';
 import { syncOrderStatus } from '@/lib/orders';
@@ -42,13 +43,17 @@ export async function markOrderPaid(orderId: string, reference: string): Promise
 
 export async function cancelOrder(orderId: string): Promise<ActionResult> {
   await requireAdmin();
-  const order = await db.order.findUnique({ where: { id: orderId }, select: { status: true } });
+  const order = await db.order.findUnique({ where: { id: orderId }, include: { items: true } });
   if (!order) return { error: 'Order not found.' };
   if (['SHIPPED', 'DELIVERED', 'CANCELLED', 'REFUNDED'].includes(order.status)) return { error: 'This order can no longer be cancelled.' };
+  // Stock is taken when an order is paid, so a paid order gives back its unshipped items.
+  const restock = order.status === 'PENDING_PAYMENT' ? [] : order.items.filter((i) => i.offerId && ['PENDING', 'ACCEPTED'].includes(i.status));
   await db.$transaction([
     db.orderItem.updateMany({ where: { orderId, status: { in: ['PENDING', 'ACCEPTED'] } }, data: { status: 'CANCELLED', cancelReason: 'Cancelled by WHATPART' } }),
     db.order.update({ where: { id: orderId }, data: { status: 'CANCELLED' } }),
+    ...restock.map((i) => db.offer.update({ where: { id: i.offerId! }, data: { stock: { increment: i.quantity } } })),
   ]);
+  await reindexOffers(restock.map((i) => i.offerId!));
   revalidatePath('/admin/orders');
   return { ok: order.status === 'PENDING_PAYMENT' ? 'Order cancelled' : 'Order cancelled. Remember to refund the customer.' };
 }
@@ -94,4 +99,39 @@ export async function closeRequest(requestId: string): Promise<ActionResult> {
   await db.quoteRequest.update({ where: { id: requestId }, data: { status: 'CLOSED' } });
   revalidatePath('/admin/requests');
   return { ok: 'Request closed' };
+}
+
+// ─── Deals ──────────────────────────────────────────────────────────────────
+
+const DealInput = z.object({
+  offerId: z.string().min(1),
+  label: z.string().trim().min(2).max(30),
+  price: z.coerce.number().min(1, 'Enter the deal price').transform((r) => Math.round(r * 100)),
+  // datetime-local sends wall-clock time with no zone; admins work in SAST (UTC+2, no daylight saving).
+  startsAt: z.string().regex(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/, 'Choose a start time').transform((s) => new Date(`${s}:00+02:00`)),
+  days: z.coerce.number().int().min(1).max(30),
+});
+
+export async function createDeal(_prev: ActionResult, form: FormData): Promise<ActionResult> {
+  await requireAdmin();
+  const parsed = DealInput.safeParse(Object.fromEntries(form));
+  if (!parsed.success) return { error: parsed.error.issues[0].message };
+  const { offerId, label, price, startsAt, days } = parsed.data;
+  const offer = await db.offer.findUnique({ where: { id: offerId }, select: { priceCents: true, productId: true, active: true } });
+  if (!offer?.active) return { error: 'That offer is no longer listed.' };
+  if (price >= offer.priceCents) return { error: `The deal price must be below the normal price (${(offer.priceCents / 100).toFixed(2)}).` };
+  await db.deal.create({
+    data: { offerId, label, priceCents: price, startsAt, endsAt: new Date(startsAt.getTime() + days * 86_400_000) },
+  });
+  await reindexProduct(offer.productId);
+  revalidatePath('/admin/deals');
+  return { ok: 'Deal scheduled' };
+}
+
+export async function endDeal(dealId: string): Promise<ActionResult> {
+  await requireAdmin();
+  const deal = await db.deal.update({ where: { id: dealId }, data: { endsAt: new Date() }, select: { offer: { select: { productId: true } } } });
+  await reindexProduct(deal.offer.productId);
+  revalidatePath('/admin/deals');
+  return { ok: 'Deal ended' };
 }

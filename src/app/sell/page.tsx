@@ -10,7 +10,7 @@ export const metadata: Metadata = {
 
 const POINTS = [
   [Users, 'Buyers who know what they need', 'Customers arrive with their vehicle saved, so they buy parts that fit and return fewer.'],
-  [Banknote, 'Get paid without chasing', 'We collect payment up front through PayFast and pay out to your bank account.'],
+  [Banknote, 'Get paid without chasing', 'We collect payment from buyers up front and pay out to your bank account.'],
   [Truck, 'Shipping sorted', 'Courier collection from your premises, or drop off at your nearest Pargo point.'],
   [BadgeCheck, 'Your stock, your prices', 'New, remanufactured or tested used parts. You set the price and warranty.'],
 ] as const;

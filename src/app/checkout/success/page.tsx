@@ -49,7 +49,10 @@ export default async function SuccessPage({ searchParams }: Props) {
           ))}
           <li className="flex justify-between px-4 py-2 font-semibold"><span>Total</span><span>{formatRand(order.totalCents)}</span></li>
         </ul>
-        <Link href="/" className="btn-primary">Continue shopping</Link>
+        <div className="flex flex-wrap justify-center gap-2">
+          <Link href="/" className="btn-primary">Continue shopping</Link>
+          <Link href={`/track?order=${order.number}&email=${encodeURIComponent(order.email)}`} className="btn-outline">Track this order</Link>
+        </div>
       </div>
     </div>
   );

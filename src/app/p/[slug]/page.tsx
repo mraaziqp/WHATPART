@@ -11,6 +11,7 @@ import { railProducts } from '@/lib/product-search';
 import { BuyBox, type OfferView } from '@/components/product/BuyBox';
 import { ProductCard } from '@/components/product/ProductCard';
 import { Stars } from '@/components/product/Stars';
+import { ProductGallery } from '@/components/product/ProductGallery';
 import { WishlistButton } from '@/components/product/WishlistButton';
 import { ReviewForm } from '@/components/product/ReviewForm';
 import { getSessionUser } from '@/lib/session';
@@ -63,9 +64,7 @@ export default async function ProductPage({ params }: Props) {
         id: o.id,
         sellerName: o.seller.name,
         sellerCity: o.seller.city,
-        sellerProvince: o.seller.province,
         sellerVerified: o.seller.verified,
-        sellerType: o.seller.type,
         conditionLabel: CONDITION_LABEL[o.condition],
         priceCents: deal ? deal.priceCents : o.priceCents,
         wasCents: deal ? o.priceCents : o.compareAtCents,
@@ -129,8 +128,8 @@ export default async function ProductPage({ params }: Props) {
       {/* DOM order (image, title, buy box, details) gives phones the price straight after the title;
           on desktop the three columns are placed explicitly. */}
       <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)_330px] lg:grid-rows-[auto_1fr]">
-        <div className="card flex aspect-square items-center justify-center p-10 lg:col-start-1 lg:row-span-2 lg:row-start-1">
-          {p.images[0] && <img src={p.images[0].url} alt={p.images[0].alt} className="max-h-full w-full object-contain" />}
+        <div className="lg:col-start-1 lg:row-span-2 lg:row-start-1">
+          <ProductGallery images={p.images.map((i) => ({ url: i.url, alt: i.alt }))} />
         </div>
 
         <div className="space-y-4 lg:col-start-2 lg:row-start-1">

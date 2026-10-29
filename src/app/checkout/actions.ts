@@ -3,12 +3,13 @@
 import { randomInt } from 'node:crypto';
 import { z } from 'zod';
 import { db } from '@/lib/db';
+import { PROVINCES } from '@/lib/constants';
+import { fieldErrors } from '@/lib/validation';
 import { resolveCart } from '@/lib/cart';
 import { buildPaymentForm } from '@/lib/payfast';
 import { getSessionUser } from '@/lib/session';
 import { SHIPPING_METHODS, shippingCents, type ShippingMethod } from '@/lib/shipping';
 
-const PROVINCES = ['Eastern Cape', 'Free State', 'Gauteng', 'KwaZulu-Natal', 'Limpopo', 'Mpumalanga', 'North West', 'Northern Cape', 'Western Cape'] as const;
 
 const CheckoutInput = z.object({
   fullName: z.string().trim().min(3, 'Enter your full name').max(100).refine((v) => v.includes(' '), 'Enter your first and last name'),
@@ -39,9 +40,7 @@ const orderNumber = () => `WP-${Array.from({ length: 7 }, () => ALPHABET[randomI
 export async function placeOrder(raw: CheckoutInput): Promise<CheckoutResult> {
   const parsed = CheckoutInput.safeParse(raw);
   if (!parsed.success) {
-    const fieldErrors: Record<string, string> = {};
-    for (const issue of parsed.error.issues) fieldErrors[String(issue.path[0])] ??= issue.message;
-    return { ok: false, error: 'Please check the highlighted fields.', fieldErrors };
+    return { ok: false, error: 'Please check the highlighted fields.', fieldErrors: fieldErrors(parsed.error) };
   }
   const input = parsed.data;
 

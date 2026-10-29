@@ -1,0 +1,12 @@
+# Installed to /etc/cron.d/whatpart by deploy.sh. Times are server time (UTC); SAST = UTC+2.
+SHELL=/bin/bash
+PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+
+# Search results carry deal prices: refresh parts whose deals started or ended recently.
+*/15 * * * * root cd /opt/whatpart && docker compose run --rm -T tools npx tsx scripts/refresh-deals.ts >> /var/log/whatpart-jobs.log 2>&1
+
+# Full search rebuild as a safety net (02:15 SAST).
+15 0 * * * root cd /opt/whatpart && docker compose run --rm -T tools npx tsx scripts/reindex.ts >> /var/log/whatpart-jobs.log 2>&1
+
+# Database and photo backups (02:45 SAST).
+45 0 * * * root /opt/whatpart/ops/backup.sh >> /var/log/whatpart-jobs.log 2>&1

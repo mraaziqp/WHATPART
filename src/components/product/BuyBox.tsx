@@ -1,17 +1,16 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { BadgeCheck, Check, MapPin, ShieldCheck, ShoppingCart, Truck, Zap } from 'lucide-react';
 import { useCart } from '@/lib/cart-store';
+import { formatRand } from '@/lib/format';
 
 export type OfferView = {
   id: string;
   sellerName: string;
   sellerCity: string;
-  sellerProvince: string;
   sellerVerified: boolean;
-  sellerType: string;
   conditionLabel: string;
   priceCents: number;
   wasCents: number | null;
@@ -22,14 +21,34 @@ export type OfferView = {
   dispatchText: string;
 };
 
-const rand = (c: number) => `R ${(c / 100).toLocaleString('en-ZA', { minimumFractionDigits: c % 100 ? 2 : 0 })}`;
-
 export function BuyBox({ offers, initialId }: { offers: OfferView[]; initialId: string }) {
   const router = useRouter();
   const add = useCart((s) => s.add);
   const [selected, setSelected] = useState(initialId);
   const [qty, setQty] = useState(1);
   const [added, setAdded] = useState(false);
+  // Phones get a sticky bar once the main buttons scroll out of view.
+  const buttonsRef = useRef<HTMLDivElement>(null);
+  const [showBar, setShowBar] = useState(false);
+  useEffect(() => {
+    const el = buttonsRef.current;
+    if (!el) return;
+    // A scroll listener rather than IntersectionObserver: a fast flick or jump can carry the
+    // buttons from below the viewport to above it without ever "intersecting".
+    let frame = 0;
+    const check = () => {
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(() => setShowBar(el.getBoundingClientRect().bottom < 0));
+    };
+    check();
+    window.addEventListener('scroll', check, { passive: true });
+    window.addEventListener('resize', check);
+    return () => {
+      cancelAnimationFrame(frame);
+      window.removeEventListener('scroll', check);
+      window.removeEventListener('resize', check);
+    };
+  }, []);
   const offer = offers.find((o) => o.id === selected) ?? offers[0];
   const saving = offer.wasCents && offer.wasCents > offer.priceCents ? offer.wasCents - offer.priceCents : 0;
 
@@ -50,10 +69,10 @@ export function BuyBox({ offers, initialId }: { offers: OfferView[]; initialId: 
         </p>
       )}
       <div>
-        <p className="text-3xl font-bold">{rand(offer.priceCents)}</p>
+        <p className="text-3xl font-bold">{formatRand(offer.priceCents)}</p>
         {saving > 0 && (
           <p className="text-sm text-slate-600">
-            <span className="line-through">{rand(offer.wasCents!)}</span> <span className="font-semibold text-red-600">Save {rand(saving)}</span>
+            <span className="line-through">{formatRand(offer.wasCents!)}</span> <span className="font-semibold text-red-600">Save {formatRand(saving)}</span>
           </p>
         )}
         <p className="mt-1 text-sm font-medium text-slate-700">{offer.conditionLabel}</p>
@@ -81,7 +100,7 @@ export function BuyBox({ offers, initialId }: { offers: OfferView[]; initialId: 
           {Array.from({ length: Math.max(1, Math.min(10, offer.stock)) }, (_, i) => i + 1).map((n) => <option key={n}>{n}</option>)}
         </select>
       </div>
-      <div className="grid gap-2">
+      <div ref={buttonsRef} className="grid gap-2">
         <button onClick={() => addToCart(false)} disabled={offer.stock === 0} className="btn-primary py-3 text-base">
           {added ? <><Check className="size-5" /> Added to cart</> : <><ShoppingCart className="size-5" /> Add to cart</>}
         </button>
@@ -102,11 +121,22 @@ export function BuyBox({ offers, initialId }: { offers: OfferView[]; initialId: 
                     <span className="block truncate font-medium">{o.sellerName}</span>
                     <span className="block text-xs text-slate-500">{o.conditionLabel} · {o.stock > 0 ? o.dispatchText : 'Out of stock'}</span>
                   </span>
-                  <span className="shrink-0 font-semibold">{rand(o.priceCents)}</span>
+                  <span className="shrink-0 font-semibold">{formatRand(o.priceCents)}</span>
                 </button>
               </li>
             ))}
           </ul>
+        </div>
+      )}
+      {showBar && offer.stock > 0 && (
+        <div className="fixed inset-x-0 bottom-0 z-30 flex items-center gap-3 border-t border-slate-200 bg-white/95 px-4 py-3 shadow-[0_-4px_12px_rgba(0,0,0,0.06)] backdrop-blur lg:hidden">
+          <div className="min-w-0 flex-1">
+            <p className="text-lg font-bold leading-tight">{formatRand(offer.priceCents)}</p>
+            <p className="truncate text-xs text-emerald-700">{offer.dispatchText}</p>
+          </div>
+          <button onClick={() => addToCart(false)} className="btn-primary px-5 py-3">
+            {added ? <><Check className="size-5" /> Added</> : <><ShoppingCart className="size-5" /> Add to cart</>}
+          </button>
         </div>
       )}
     </div>

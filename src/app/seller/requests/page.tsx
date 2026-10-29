@@ -1,5 +1,6 @@
 import { db } from '@/lib/db';
 import { requireSellerPage } from '@/lib/guards';
+import { daysAgo } from '@/lib/format';
 import { QuoteReplyForm } from './QuoteReplyForm';
 
 const CONDITION_PREF: Record<string, string> = { any: 'New or used', new: 'New only', used: 'Used only' };
@@ -8,7 +9,7 @@ export default async function SellerRequestsPage() {
   const { seller } = await requireSellerPage('/seller/requests');
   if (seller.status !== 'ACTIVE') return null;
   const requests = await db.quoteRequest.findMany({
-    where: { status: { in: ['OPEN', 'QUOTED'] }, createdAt: { gte: new Date(Date.now() - 30 * 86400000) } },
+    where: { status: { in: ['OPEN', 'QUOTED'] }, createdAt: { gte: daysAgo(30) } },
     include: { responses: { where: { sellerId: seller.id } }, _count: { select: { responses: true } } },
     orderBy: { createdAt: 'desc' },
     take: 100,

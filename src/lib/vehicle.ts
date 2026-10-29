@@ -1,10 +1,10 @@
 import 'server-only';
 import { cache } from 'react';
 import { cookies } from 'next/headers';
+import { unstable_cache } from 'next/cache';
 import { db } from './db';
 import { yearRange } from './format';
-
-export const VEHICLE_COOKIE = 'wp_vehicle';
+import { VEHICLE_COOKIE } from './vehicle-cookie';
 
 export type VehicleTree = {
   id: string;
@@ -21,7 +21,8 @@ export type SelectedVehicle = {
   label: string; // "Toyota Hilux 2.8 GD-6"
 };
 
-export const getVehicleTree = cache(async (): Promise<VehicleTree> => {
+// Read on every page (vehicle picker) but only changes when vehicles are added.
+const loadVehicleTree = unstable_cache(async (): Promise<VehicleTree> => {
   const makes = await db.make.findMany({
     orderBy: [{ popular: 'desc' }, { name: 'asc' }],
     include: { models: { orderBy: { name: 'asc' }, include: { vehicles: { orderBy: [{ yearFrom: 'desc' }, { engine: 'asc' }] } } } },
@@ -40,7 +41,9 @@ export const getVehicleTree = cache(async (): Promise<VehicleTree> => {
       })),
     })),
   }));
-});
+}, ['vehicle-tree'], { revalidate: 3600, tags: ['vehicles'] });
+
+export const getVehicleTree = cache(loadVehicleTree);
 
 export const getSelectedVehicle = cache(async (): Promise<SelectedVehicle | null> => {
   const raw = (await cookies()).get(VEHICLE_COOKIE)?.value;

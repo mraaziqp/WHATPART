@@ -20,10 +20,7 @@ export function SearchBox() {
 
   useEffect(() => {
     const term = q.trim();
-    if (term.length < 2) {
-      setResults([]);
-      return;
-    }
+    if (term.length < 2) return; // suggestions are only rendered for 2+ characters
     const ctrl = new AbortController();
     const t = setTimeout(async () => {
       setLoading(true);

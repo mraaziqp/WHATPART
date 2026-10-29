@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Car, Check, ChevronDown, ShoppingCart, X } from 'lucide-react';
 import { setVehicleCookie } from '@/lib/vehicle-cookie';
-import { useCartCount } from '@/lib/cart-store';
+import { useCartCount, useCartHydrated } from '@/lib/cart-store';
 import { VehiclePicker } from '@/components/vehicle/VehiclePicker';
 import type { VehicleTree } from '@/lib/vehicle';
 
@@ -79,8 +79,7 @@ export function VehicleButton({ tree, label, garage }: { tree: VehicleTree; labe
 
 export function CartButton() {
   const count = useCartCount();
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => setMounted(true), []);
+  const mounted = useCartHydrated();
   return (
     <Link href="/cart" className="relative flex items-center gap-2 rounded-lg px-2 py-1.5 text-white hover:bg-white/10" aria-label="Cart">
       <ShoppingCart className="size-6" />

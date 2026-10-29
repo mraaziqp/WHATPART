@@ -2,9 +2,8 @@
 
 import { useActionState } from 'react';
 import { Loader2 } from 'lucide-react';
+import { PROVINCES } from '@/lib/constants';
 import { applyToSell, type ApplyState } from './actions';
-
-const PROVINCES = ['Eastern Cape', 'Free State', 'Gauteng', 'KwaZulu-Natal', 'Limpopo', 'Mpumalanga', 'North West', 'Northern Cape', 'Western Cape'];
 
 export function ApplyForm({ defaultName, defaultEmail }: { defaultName: string; defaultEmail: string }) {
   const [state, action, pending] = useActionState<ApplyState, FormData>(applyToSell, {});

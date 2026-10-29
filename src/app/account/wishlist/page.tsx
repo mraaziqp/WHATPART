@@ -3,7 +3,7 @@ import { Heart } from 'lucide-react';
 import { db } from '@/lib/db';
 import { requireUser } from '@/lib/session';
 import { getSelectedVehicle } from '@/lib/vehicle';
-import { productsIndex } from '@/lib/search';
+import { liveDoc, productsIndex } from '@/lib/search';
 import { ProductCard } from '@/components/product/ProductCard';
 
 export const metadata = { title: 'Wishlist', robots: { index: false } };
@@ -18,7 +18,7 @@ export default async function WishlistPage() {
   const docs = items.length
     ? (await productsIndex().getDocuments({ filter: `id IN [${items.map((i) => `"${i.productId}"`).join(', ')}]`, limit: 200 })).results
     : [];
-  const ordered = items.map((i) => docs.find((d) => d.id === i.productId)).filter((d) => d !== undefined);
+  const ordered = items.map((i) => docs.find((d) => d.id === i.productId)).filter((d) => d !== undefined).map((d) => liveDoc(d));
 
   return (
     <div className="space-y-4">

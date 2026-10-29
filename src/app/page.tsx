@@ -3,7 +3,7 @@ import { ArrowRight, BadgeCheck, CircleCheck, Recycle, Scale, Search, Store, Zap
 import { db } from '@/lib/db';
 import { getCategoryTree } from '@/lib/categories';
 import { getSelectedVehicle, getVehicleTree } from '@/lib/vehicle';
-import { railProducts } from '@/lib/product-search';
+import { activeDealFilter, railProducts } from '@/lib/product-search';
 import { VehiclePicker } from '@/components/vehicle/VehiclePicker';
 import { ProductCard } from '@/components/product/ProductCard';
 import type { ProductDoc } from '@/lib/search';
@@ -41,7 +41,7 @@ export default async function HomePage() {
     db.make.findMany({ where: { popular: true }, orderBy: { name: 'asc' } }),
   ]);
   const [deals, service, brakes] = await Promise.all([
-    railProducts({ filter: ['hasDeal = true'], limit: 5 }, vehicle),
+    railProducts({ filter: [activeDealFilter()], limit: 5 }, vehicle),
     railProducts({ filter: ['parentSlug = "filters-service"'], sort: ['priceCents:asc'], limit: 5 }, vehicle),
     railProducts({ filter: ['parentSlug = "brakes"'], limit: 5 }, vehicle),
   ]);

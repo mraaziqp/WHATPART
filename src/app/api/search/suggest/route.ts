@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from 'next/server';
-import { productsIndex } from '@/lib/search';
+import { liveDoc, productsIndex, type ProductDoc } from '@/lib/search';
 import { getSelectedVehicle } from '@/lib/vehicle';
 
 export async function GET(req: NextRequest) {
@@ -8,7 +8,7 @@ export async function GET(req: NextRequest) {
   const vehicle = await getSelectedVehicle();
   const res = await productsIndex().search(q, {
     limit: 6,
-    attributesToRetrieve: ['id', 'slug', 'title', 'image', 'priceCents', 'vehicleIds', 'universal'],
+    attributesToRetrieve: ['id', 'slug', 'title', 'image', 'priceCents', 'compareAtCents', 'dealEndsAt', 'hasDeal', 'vehicleIds', 'universal'],
   });
   // Prefer parts that fit, but never hide results entirely while typing.
   const hits = res.hits.map((h) => ({
@@ -16,7 +16,7 @@ export async function GET(req: NextRequest) {
     slug: h.slug,
     title: h.title,
     image: h.image,
-    priceCents: h.priceCents,
+    priceCents: liveDoc(h as ProductDoc).priceCents,
     fits: !!vehicle && (h.universal || h.vehicleIds.includes(vehicle.id)),
   }));
   if (vehicle) hits.sort((a, b) => Number(b.fits) - Number(a.fits));

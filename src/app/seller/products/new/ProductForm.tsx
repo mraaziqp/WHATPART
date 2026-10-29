@@ -39,7 +39,13 @@ export function ProductForm({ categories, brands, vehicles }: Props) {
     setImages((cur) => [...cur, ...data.urls].slice(0, 8));
   };
 
-  const toggle = (id: string) => setPicked((s) => { const n = new Set(s); n.has(id) ? n.delete(id) : n.add(id); return n; });
+  const toggle = (id: string) =>
+    setPicked((s) => {
+      const n = new Set(s);
+      if (n.has(id)) n.delete(id);
+      else n.add(id);
+      return n;
+    });
 
   const field = (name: string, label: string, props: React.InputHTMLAttributes<HTMLInputElement> = {}) => (
     <div>

@@ -1,5 +1,5 @@
 import 'server-only';
-import { productsIndex, type ProductDoc } from './search';
+import { liveDoc, productsIndex, type ProductDoc } from './search';
 import type { SelectedVehicle } from './vehicle';
 
 export const PAGE_SIZE = 24;
@@ -54,7 +54,12 @@ export function parseFilters(sp: Raw, overrides: Partial<Filters> = {}): Filters
   };
 }
 
-const quote = (s: string) => `"${s.replace(/"/g, '\\"')}"`;
+// Filter values come from the URL: escape backslashes before quotes so a value can't
+// close the string early and inject its own filter expression.
+/** Deals whose end time hasn't passed (index entries can lag a deal's expiry). */
+export const activeDealFilter = () => `hasDeal = true AND dealEndsAt > ${Date.now()}`;
+
+const quote = (s: string) => `"${s.replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"`;
 
 export function fitFilter(vehicle: SelectedVehicle | null) {
   return vehicle ? `(vehicleIds = ${quote(vehicle.id)} OR universal = true)` : undefined;
@@ -68,7 +73,7 @@ export async function searchProducts(f: Filters, vehicle: SelectedVehicle | null
   if (f.min) filter.push(`priceCents >= ${Math.round(f.min * 100)}`);
   if (f.max) filter.push(`priceCents <= ${Math.round(f.max * 100)}`);
   if (f.inStock) filter.push('inStock = true');
-  if (f.deals) filter.push('hasDeal = true');
+  if (f.deals) filter.push(activeDealFilter());
   const fit = f.fit ? fitFilter(vehicle) : undefined;
   if (fit) filter.push(fit);
 
@@ -81,11 +86,10 @@ export async function searchProducts(f: Filters, vehicle: SelectedVehicle | null
     sort: sort ? [...sort] : undefined,
   });
   return {
-    hits: res.hits,
+    hits: res.hits.map((h) => liveDoc(h)),
     total: res.totalHits ?? 0,
     totalPages: res.totalPages ?? 1,
     facets: res.facetDistribution ?? {},
-    ms: res.processingTimeMs,
   };
 }
 
@@ -97,5 +101,5 @@ export async function railProducts(opts: { filter?: string[]; sort?: string[]; l
     sort: opts.sort,
     limit: opts.limit ?? 10,
   });
-  return res.hits;
+  return res.hits.map((h) => liveDoc(h));
 }

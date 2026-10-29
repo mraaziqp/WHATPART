@@ -1,7 +1,12 @@
 import type { Condition } from '@/generated/prisma/enums';
 
+// "R 1,529" / "R 799.50": the period decimal South African shoppers expect online
+// (the en-ZA locale would print "R 799,50").
 export const formatRand = (cents: number) =>
-  `R ${(cents / 100).toLocaleString('en-ZA', { minimumFractionDigits: cents % 100 ? 2 : 0, maximumFractionDigits: 2 })}`;
+  `R ${(cents / 100).toLocaleString('en-US', { minimumFractionDigits: cents % 100 ? 2 : 0, maximumFractionDigits: 2 })}`;
+
+/** A Date `days` days before now (for "last 30 days" style queries). */
+export const daysAgo = (days: number) => new Date(Date.now() - days * 86_400_000);
 
 export const yearRange = (from: number, to?: number | null) => (to ? `${from}–${to}` : `${from}+`);
 

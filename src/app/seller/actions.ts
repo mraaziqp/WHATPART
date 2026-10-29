@@ -7,6 +7,8 @@ import { db } from '@/lib/db';
 import { requireActiveSeller } from '@/lib/guards';
 import { syncOrderStatus } from '@/lib/orders';
 import { reindexProduct } from '@/lib/search';
+import { slugify } from '@/lib/slug';
+import { fieldErrors } from '@/lib/validation';
 
 export type FormState = { ok?: string; error?: string; fieldErrors?: Record<string, string> };
 
@@ -24,11 +26,7 @@ const OfferFields = z.object({
   notes: z.string().trim().max(500).optional(),
 });
 
-const errorsOf = (e: z.ZodError) => {
-  const fieldErrors: Record<string, string> = {};
-  for (const i of e.issues) fieldErrors[String(i.path[0])] ??= i.message;
-  return { error: 'Please check the highlighted fields.', fieldErrors };
-};
+const errorsOf = (e: z.ZodError) => ({ error: 'Please check the highlighted fields.', fieldErrors: fieldErrors(e) });
 
 const offerData = (o: z.infer<typeof OfferFields>) => ({
   condition: o.condition,
@@ -100,9 +98,6 @@ const ProductFields = z.object({
   specs: z.string().trim().max(2000).optional(),
   universal: z.enum(['on']).optional(),
 });
-
-const slugify = (s: string) =>
-  s.toLowerCase().normalize('NFKD').replace(/[^\w\s-]/g, '').replace(/[\s_]+/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '').slice(0, 90);
 
 export async function createProduct(_prev: FormState, form: FormData): Promise<FormState> {
   const { seller } = await requireActiveSeller();

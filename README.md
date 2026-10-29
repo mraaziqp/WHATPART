@@ -35,6 +35,21 @@ shopper's selected vehicle (cookie `wp_vehicle`) filters search and drives the "
   a payment link, then marks the order paid in `/admin`. `PAYMENT_GATEWAY=payfast` in `app.env` switches
   checkout to PayFast's hosted page (with merchant credentials set).
 - **Photos** are re-encoded to WebP (EXIF/GPS stripped) and stored in `/opt/whatpart/data/uploads`.
+- **Deals** are scheduled in `/admin/deals` (times are SAST). Search entries record when their deal ends,
+  so an expired deal is never advertised even before the index is refreshed.
+- **Customers** get My Garage (vehicles saved automatically, VIN lookup), a wishlist, reviews limited to
+  verified buyers, and guest order tracking at `/track` (order number + email).
+
+## Server operations
+
+`ops/` holds the server config: the production `docker-compose.yml` (with log rotation) and
+`backup.sh` (database dump + photos, 14 days kept in `/opt/whatpart/backups`). Deploys install both.
+Scheduled jobs are opt-in: `./deploy.sh install-schedule` installs `ops/whatpart.cron` (nightly backup,
+nightly search rebuild, 15-minute deal refresh); `./deploy.sh remove-schedule` removes them.
+Run a backup by hand with `./deploy.sh backup`.
+
+Security: per-request nonce Content-Security-Policy (`src/proxy.ts`), roles checked in the database on
+every admin/seller request, rate-limited sign-in, and buyers' addresses hidden from sellers until paid.
 
 ## Local development
 
@@ -52,7 +67,7 @@ npm run dev             # http://localhost:3000
 |---|---|
 | Change the schema | edit `prisma/schema.prisma`, then `npm run db:migrate -- --name <change>` |
 | Reseed demo catalogue | `npm run db:seed` then `npm run search:reindex` (refuses once real sellers exist) |
-| Type-check | `npm run lint` |
+| Type-check and lint | `npm run lint` |
 
 ## Deploying
 
