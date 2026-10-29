@@ -1,0 +1,521 @@
+// WHATPART marketplace schema.
+// Money is stored as integer cents (ZAR). A Product is a catalogue part; sellers list it
+// through Offers (Takealot/Amazon model: one product page, many seller offers).
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ─── Auth (better-auth core tables) ─────────────────────────────────────────
+
+enum Role {
+  CUSTOMER
+  SELLER
+  ADMIN
+}
+
+model User {
+  id            String    @id
+  name          String
+  email         String    @unique
+  emailVerified Boolean   @default(false)
+  image         String?
+  phone         String?
+  role          Role      @default(CUSTOMER)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  sessions      Session[]
+  accounts      Account[]
+  addresses     Address[]
+  garage        GarageVehicle[]
+  orders        Order[]
+  reviews       Review[]
+  wishlist      WishlistItem[]
+  cart          Cart?
+  quoteRequests QuoteRequest[]
+  sellers       Seller[]
+
+  @@map("user")
+}
+
+model Session {
+  id        String   @id
+  expiresAt DateTime
+  token     String   @unique
+  ipAddress String?
+  userAgent String?
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@map("session")
+}
+
+model Account {
+  id                    String    @id
+  accountId             String
+  providerId            String
+  userId                String
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accessToken           String?
+  refreshToken          String?
+  idToken               String?
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                 String?
+  password              String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  @@index([userId])
+  @@map("account")
+}
+
+model Verification {
+  id         String   @id
+  identifier String
+  value      String
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([identifier])
+  @@map("verification")
+}
+
+// ─── Customers ──────────────────────────────────────────────────────────────
+
+model Address {
+  id         String  @id @default(cuid())
+  userId     String
+  user       User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  label      String  @default("Home")
+  recipient  String
+  phone      String
+  street     String
+  suburb     String
+  city       String
+  province   String
+  postalCode String
+  isDefault  Boolean @default(false)
+
+  @@index([userId])
+}
+
+model GarageVehicle {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  vehicleId String
+  vehicle   Vehicle  @relation(fields: [vehicleId], references: [id])
+  year      Int
+  nickname  String?
+  vin       String?
+  isPrimary Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+}
+
+model WishlistItem {
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  productId String
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@id([userId, productId])
+}
+
+// ─── Vehicles & fitment ─────────────────────────────────────────────────────
+
+model Make {
+  id      String         @id @default(cuid())
+  name    String         @unique
+  slug    String         @unique
+  popular Boolean        @default(false)
+  models  VehicleModel[]
+}
+
+model VehicleModel {
+  id       String    @id @default(cuid())
+  makeId   String
+  make     Make      @relation(fields: [makeId], references: [id], onDelete: Cascade)
+  name     String
+  slug     String
+  vehicles Vehicle[]
+
+  @@unique([makeId, slug])
+}
+
+enum FuelType {
+  PETROL
+  DIESEL
+  HYBRID
+  ELECTRIC
+}
+
+// A specific generation + engine of a model, e.g. "Hilux (AN120) 2.8 GD-6, 2016–2025".
+model Vehicle {
+  id         String          @id @default(cuid())
+  modelId    String
+  model      VehicleModel    @relation(fields: [modelId], references: [id], onDelete: Cascade)
+  generation String?
+  engine     String
+  engineCode String?
+  fuel       FuelType
+  powerKw    Int?
+  yearFrom   Int
+  yearTo     Int?
+  fitments   Fitment[]
+  garage     GarageVehicle[]
+  reviews    Review[]
+
+  @@index([modelId])
+}
+
+model Fitment {
+  id        String  @id @default(cuid())
+  productId String
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  vehicleId String
+  vehicle   Vehicle @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+  position  String? // Front, Rear, Left, Right
+  notes     String?
+
+  @@unique([productId, vehicleId, position])
+  @@index([vehicleId])
+}
+
+// ─── Catalogue ──────────────────────────────────────────────────────────────
+
+model Category {
+  id          String     @id @default(cuid())
+  name        String
+  slug        String     @unique
+  description String?
+  icon        String? // lucide icon name
+  image       String?
+  sortOrder   Int        @default(0)
+  parentId    String?
+  parent      Category?  @relation("CategoryTree", fields: [parentId], references: [id])
+  children    Category[] @relation("CategoryTree")
+  products    Product[]
+}
+
+enum BrandTier {
+  GENUINE // vehicle manufacturer part
+  PREMIUM // OE supplier brands: Bosch, Brembo, NGK...
+  VALUE
+}
+
+model Brand {
+  id       String    @id @default(cuid())
+  name     String    @unique
+  slug     String    @unique
+  tier     BrandTier @default(PREMIUM)
+  country  String?
+  products Product[]
+}
+
+model Product {
+  id          String         @id @default(cuid())
+  slug        String         @unique
+  title       String
+  description String
+  categoryId  String
+  category    Category       @relation(fields: [categoryId], references: [id])
+  brandId     String
+  brand       Brand          @relation(fields: [brandId], references: [id])
+  partNumber  String // manufacturer part number
+  oemNumbers  String[] // vehicle-manufacturer cross references
+  specs       Json           @default("{}")
+  universal   Boolean        @default(false) // fits any vehicle (e.g. wiper fluid, tools)
+  weightGrams Int?
+  ratingAvg   Float          @default(0)
+  ratingCount Int            @default(0)
+  active      Boolean        @default(true)
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  images      ProductImage[]
+  fitments    Fitment[]
+  offers      Offer[]
+  reviews     Review[]
+  wishlistBy  WishlistItem[]
+
+  @@index([categoryId])
+  @@index([brandId])
+  @@index([partNumber])
+}
+
+model ProductImage {
+  id        String  @id @default(cuid())
+  productId String
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  url       String
+  alt       String
+  sortOrder Int     @default(0)
+
+  @@index([productId])
+}
+
+// ─── Marketplace ────────────────────────────────────────────────────────────
+
+enum SellerType {
+  DEALER
+  SPARES_SHOP
+  IMPORTER
+  SALVAGE_YARD
+  WHATPART // first-party stock
+}
+
+enum SellerStatus {
+  PENDING
+  ACTIVE
+  SUSPENDED
+}
+
+model Seller {
+  id            String          @id @default(cuid())
+  name          String
+  slug          String          @unique
+  ownerId       String?
+  owner         User?           @relation(fields: [ownerId], references: [id])
+  type          SellerType
+  city          String
+  province      String
+  about         String?
+  verified      Boolean         @default(false)
+  status        SellerStatus    @default(PENDING)
+  isDemo        Boolean         @default(false) // seed data: hide with SHOW_DEMO_SELLERS=false
+  commissionBps Int             @default(1200) // 12%
+  ratingAvg     Float           @default(0)
+  ratingCount   Int             @default(0)
+  createdAt     DateTime        @default(now())
+
+  offers        Offer[]
+  orderItems    OrderItem[]
+  quoteReplies  QuoteResponse[]
+}
+
+enum Condition {
+  NEW_GENUINE
+  NEW_AFTERMARKET
+  REMANUFACTURED
+  USED
+}
+
+model Offer {
+  id             String      @id @default(cuid())
+  productId      String
+  product        Product     @relation(fields: [productId], references: [id], onDelete: Cascade)
+  sellerId       String
+  seller         Seller      @relation(fields: [sellerId], references: [id], onDelete: Cascade)
+  condition      Condition
+  priceCents     Int
+  compareAtCents Int? // was-price, shown struck through
+  stock          Int         @default(0)
+  warrantyMonths Int         @default(6)
+  dispatchDays   Int         @default(1)
+  sku            String?
+  notes          String? // e.g. used-part grading notes
+  active         Boolean     @default(true)
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+
+  deals          Deal[]
+  cartItems      CartItem[]
+  orderItems     OrderItem[]
+
+  @@unique([productId, sellerId, condition])
+  @@index([productId])
+  @@index([sellerId])
+}
+
+model Deal {
+  id         String   @id @default(cuid())
+  offerId    String
+  offer      Offer    @relation(fields: [offerId], references: [id], onDelete: Cascade)
+  label      String   @default("Daily Deal")
+  priceCents Int
+  startsAt   DateTime
+  endsAt     DateTime
+  maxQty     Int?
+
+  @@index([startsAt, endsAt])
+}
+
+// ─── Cart & orders ──────────────────────────────────────────────────────────
+
+model Cart {
+  id        String     @id @default(cuid())
+  userId    String?    @unique
+  user      User?      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items     CartItem[]
+  updatedAt DateTime   @updatedAt
+}
+
+model CartItem {
+  cartId   String
+  cart     Cart   @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  offerId  String
+  offer    Offer  @relation(fields: [offerId], references: [id], onDelete: Cascade)
+  quantity Int    @default(1)
+
+  @@id([cartId, offerId])
+}
+
+enum OrderStatus {
+  PENDING_PAYMENT
+  PAID
+  PROCESSING
+  SHIPPED
+  DELIVERED
+  CANCELLED
+  REFUNDED
+}
+
+model Order {
+  id             String      @id @default(cuid())
+  number         String      @unique // WP-XXXXXX, shown to customers
+  userId         String?
+  user           User?       @relation(fields: [userId], references: [id])
+  email          String
+  phone          String
+  status         OrderStatus @default(PENDING_PAYMENT)
+  subtotalCents  Int
+  shippingCents  Int
+  totalCents     Int
+  shippingMethod String
+  shippingAddr   Json
+  vehicleNote    String? // customer's vehicle / VIN for fitment check
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+
+  items          OrderItem[]
+  payments       Payment[]
+
+  @@index([userId])
+}
+
+enum ItemStatus {
+  PENDING
+  ACCEPTED
+  SHIPPED
+  DELIVERED
+  CANCELLED
+  RETURNED
+}
+
+model OrderItem {
+  id           String     @id @default(cuid())
+  orderId      String
+  order        Order      @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  offerId      String?
+  offer        Offer?     @relation(fields: [offerId], references: [id], onDelete: SetNull)
+  sellerId     String
+  seller       Seller     @relation(fields: [sellerId], references: [id])
+  productTitle String // snapshot at purchase
+  partNumber   String
+  condition    Condition
+  unitCents    Int
+  quantity     Int
+  status       ItemStatus @default(PENDING)
+  trackingRef  String?
+
+  @@index([orderId])
+  @@index([sellerId])
+}
+
+enum PaymentProvider {
+  PAYFAST
+  OZOW
+}
+
+enum PaymentStatus {
+  PENDING
+  COMPLETE
+  FAILED
+  CANCELLED
+}
+
+model Payment {
+  id          String          @id @default(cuid())
+  orderId     String
+  order       Order           @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  provider    PaymentProvider
+  providerRef String?
+  amountCents Int
+  status      PaymentStatus   @default(PENDING)
+  raw         Json?
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  @@index([orderId])
+}
+
+// ─── Reviews & quotes ───────────────────────────────────────────────────────
+
+model Review {
+  id               String   @id @default(cuid())
+  productId        String
+  product          Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  userId           String
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  vehicleId        String? // "fitted to my 2019 Hilux 2.8"
+  vehicle          Vehicle? @relation(fields: [vehicleId], references: [id])
+  rating           Int
+  title            String
+  body             String
+  verifiedPurchase Boolean  @default(false)
+  createdAt        DateTime @default(now())
+
+  @@unique([productId, userId])
+  @@index([productId])
+}
+
+enum QuoteStatus {
+  OPEN
+  QUOTED
+  ACCEPTED
+  CLOSED
+}
+
+model QuoteRequest {
+  id          String          @id @default(cuid())
+  number      String          @unique
+  userId      String?
+  user        User?           @relation(fields: [userId], references: [id])
+  name        String
+  email       String
+  phone       String
+  vehicle     String
+  vin         String?
+  part        String
+  condition   String          @default("any")
+  city        String
+  status      QuoteStatus     @default(OPEN)
+  createdAt   DateTime        @default(now())
+  responses   QuoteResponse[]
+}
+
+model QuoteResponse {
+  id         String       @id @default(cuid())
+  requestId  String
+  request    QuoteRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  sellerId   String
+  seller     Seller       @relation(fields: [sellerId], references: [id])
+  priceCents Int
+  condition  Condition
+  notes      String?
+  createdAt  DateTime     @default(now())
+}

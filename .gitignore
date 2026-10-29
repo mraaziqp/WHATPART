@@ -8,3 +8,13 @@ coverage/
 !.env.example
 .vercel/
 *.zip
+
+.vercel
+.env*.local
+
+# Next.js / Prisma
+.next/
+next-env.d.ts
+src/generated/
+public/uploads/
+*.tsbuildinfo

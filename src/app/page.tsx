@@ -1,241 +1,143 @@
-import React from 'react';
-import { 
-  GarageSearch 
-} from '../components/GarageSearch';
-import { 
-  ProductGrid 
-} from '../components/ProductGrid';
-import { 
-  CATEGORIES, 
-  PRODUCTS, 
-  Product, 
-  RECENT_QUOTES 
-} from '../data/catalogData';
-import { 
-  ShieldCheck, 
-  Truck, 
-  Zap, 
-  ChevronRight, 
-  ArrowRight, 
-  Sparkles, 
-  Car, 
-  Disc, 
-  Cpu, 
-  Layers, 
-  Thermometer, 
-  Filter, 
-  Shield 
-} from 'lucide-react';
+import Link from 'next/link';
+import { ArrowRight, BadgeCheck, CircleCheck, Recycle, Scale, Search, Store, Zap } from 'lucide-react';
+import { db } from '@/lib/db';
+import { getCategoryTree } from '@/lib/categories';
+import { getSelectedVehicle, getVehicleTree } from '@/lib/vehicle';
+import { railProducts } from '@/lib/product-search';
+import { VehiclePicker } from '@/components/vehicle/VehiclePicker';
+import { ProductCard } from '@/components/product/ProductCard';
+import type { ProductDoc } from '@/lib/search';
+import type { SelectedVehicle } from '@/lib/vehicle';
 
-interface StorefrontPageProps {
-  onAddToCart: (product: Product) => void;
-  onNavigateToQuote: () => void;
-  onNavigateToCatalog: () => void;
-  activeVehicle: string;
-  setActiveVehicle: (v: string) => void;
-  searchQuery: string;
-  setSearchQuery: (q: string) => void;
+function Rail({ title, href, docs, vehicle, accent }: { title: React.ReactNode; href: string; docs: ProductDoc[]; vehicle: SelectedVehicle | null; accent?: boolean }) {
+  if (docs.length === 0) return null;
+  return (
+    <section className="container-page mt-10">
+      <div className="mb-4 flex items-end justify-between gap-4">
+        <h2 className={`flex items-center gap-2 text-xl font-bold ${accent ? 'text-red-600' : ''}`}>{title}</h2>
+        <Link href={href} className="flex shrink-0 items-center gap-1 text-sm font-semibold text-navy-700 hover:underline">See all <ArrowRight className="size-4" /></Link>
+      </div>
+      <div className="-mx-4 flex snap-x gap-3 overflow-x-auto px-4 pb-2 sm:mx-0 sm:grid sm:grid-cols-3 sm:px-0 lg:grid-cols-5">
+        {docs.map((d) => (
+          <div key={d.id} className="w-44 shrink-0 snap-start sm:w-auto"><ProductCard doc={d} vehicle={vehicle} /></div>
+        ))}
+      </div>
+    </section>
+  );
 }
 
-export const StorefrontPage: React.FC<StorefrontPageProps> = ({
-  onAddToCart,
-  onNavigateToQuote,
-  onNavigateToCatalog,
-  activeVehicle,
-  setActiveVehicle,
-  searchQuery,
-  setSearchQuery,
-}) => {
-  const getCategoryIcon = (iconName: string) => {
-    switch (iconName) {
-      case 'Disc': return <Disc className="w-6 h-6 text-amber-400" />;
-      case 'Cpu': return <Cpu className="w-6 h-6 text-amber-400" />;
-      case 'Layers': return <Layers className="w-6 h-6 text-amber-400" />;
-      case 'Zap': return <Zap className="w-6 h-6 text-amber-400" />;
-      case 'Thermometer': return <Thermometer className="w-6 h-6 text-amber-400" />;
-      case 'Shield': return <Shield className="w-6 h-6 text-amber-400" />;
-      case 'Filter': return <Filter className="w-6 h-6 text-amber-400" />;
-      default: return <Car className="w-6 h-6 text-amber-400" />;
-    }
-  };
+const ADVANTAGES = [
+  { icon: CircleCheck, title: 'Fitment checked', text: 'Save your vehicle once. Every page tells you whether a part fits before you buy.' },
+  { icon: Scale, title: 'Compare sellers', text: 'One page per part with every seller’s price, stock, warranty and delivery time.' },
+  { icon: Recycle, title: 'New, reman or used', text: 'Genuine, quality aftermarket, remanufactured and tested used parts side by side.' },
+  { icon: Search, title: 'Can’t find it?', text: 'Send a request and sellers across South Africa quote you, often within the hour.' },
+];
 
-  const handleGarageSearchSubmit = (params: { make: string; model: string; year: string; engine: string; keyword: string }) => {
-    const formatted = `${params.year} ${params.make} ${params.model} ${params.engine}`.trim();
-    setActiveVehicle(formatted);
-    if (params.keyword) {
-      setSearchQuery(params.keyword);
-    }
-  };
+export default async function HomePage() {
+  const [vehicle, tree, categories, makes] = await Promise.all([
+    getSelectedVehicle(),
+    getVehicleTree(),
+    getCategoryTree(),
+    db.make.findMany({ where: { popular: true }, orderBy: { name: 'asc' } }),
+  ]);
+  const [deals, service, brakes] = await Promise.all([
+    railProducts({ filter: ['hasDeal = true'], limit: 5 }, vehicle),
+    railProducts({ filter: ['parentSlug = "filters-service"'], sort: ['priceCents:asc'], limit: 5 }, vehicle),
+    railProducts({ filter: ['parentSlug = "brakes"'], limit: 5 }, vehicle),
+  ]);
 
   return (
-    <div className="space-y-16">
-      
-      {/* ================= MASSIVE HERO SECTION WITH GARAGE SEARCH ================= */}
-      <section className="relative pt-6 pb-12 overflow-hidden">
-        
-        {/* Glow ambient spots */}
-        <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-full max-w-7xl h-96 bg-gradient-to-r from-amber-500/15 via-orange-500/10 to-transparent blur-3xl pointer-events-none rounded-full" />
-        
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 space-y-8">
-          
-          {/* Main Hero Headline & Subtitle */}
-          <div className="text-center max-w-3xl mx-auto space-y-4">
-            <div className="inline-flex items-center gap-2 bg-gradient-to-r from-amber-500/20 via-orange-500/20 to-amber-500/20 text-amber-300 border border-amber-500/30 px-4 py-1.5 rounded-full text-xs font-black uppercase tracking-wider">
-              <Sparkles className="w-4 h-4 text-amber-400" />
-              <span>South Africa's Premier Autoparts Marketplace</span>
+    <>
+      <section className="bg-gradient-to-br from-navy-900 via-navy-800 to-navy-700 text-white">
+        <div className="container-page py-10 sm:py-14">
+          {vehicle ? (
+            <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
+              <div>
+                <p className="flex items-center gap-2 text-sm font-medium text-brand-400"><BadgeCheck className="size-4" /> Your garage</p>
+                <h1 className="mt-2 text-3xl font-black sm:text-4xl">Parts for your {vehicle.year} {vehicle.label}</h1>
+                <p className="mt-2 max-w-xl text-white/80">Everything below is filtered to parts that fit. Change vehicle any time from the top of the page.</p>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <Link href="/search" className="btn-primary px-6 py-3 text-base">Shop all parts that fit</Link>
+                <Link href="/c/filters-service" className="btn bg-white/10 px-6 py-3 text-base text-white hover:bg-white/20">Service parts</Link>
+              </div>
             </div>
-
-            <h1 className="text-4xl sm:text-6xl font-black text-white tracking-tight leading-[1.1]">
-              Find the exact part for your ride. <br />
-              <span className="bg-gradient-to-r from-amber-400 via-orange-400 to-amber-500 bg-clip-text text-transparent">
-                Fast. Guaranteed.
-              </span>
-            </h1>
-
-            <p className="text-slate-300 text-sm sm:text-base max-w-2xl mx-auto leading-relaxed">
-              Connect directly with 500+ verified scrap yards, OEM suppliers, and component specialists nationwide. Guaranteed fitment or 100% money back.
-            </p>
-
-            {/* Quick SA Stats */}
-            <div className="pt-2 flex flex-wrap justify-center items-center gap-6 text-xs text-slate-300 font-semibold">
-              <span className="flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" /> 50,000+ Active Parts
-              </span>
-              <span className="flex items-center gap-1.5">
-                <ShieldCheck className="w-4 h-4 text-amber-400" /> 100% Vehicle Fitment Guarantee
-              </span>
-              <span className="flex items-center gap-1.5">
-                <Truck className="w-4 h-4 text-amber-400" /> 24/48h Courier Guy Express
-              </span>
-            </div>
-          </div>
-
-          {/* ================= THE GARAGE SEARCH BLOCK ================= */}
-          <div className="max-w-5xl mx-auto pt-2">
-            <GarageSearch
-              onSearchSubmit={handleGarageSearchSubmit}
-              onRequestQuoteClick={onNavigateToQuote}
-              activeVehicleName={activeVehicle}
-            />
-          </div>
-
+          ) : (
+            <>
+              <h1 className="max-w-3xl text-3xl font-black leading-tight sm:text-5xl">The right part for your car. <span className="text-brand-400">Delivered.</span></h1>
+              <p className="mt-3 max-w-2xl text-lg text-white/80">Tell us what you drive and we’ll only show parts that fit, from sellers across South Africa.</p>
+              <div className="mt-6 rounded-2xl bg-white p-4 text-slate-900 shadow-2xl sm:p-5">
+                <VehiclePicker tree={tree} variant="hero" />
+              </div>
+              <p className="mt-3 text-sm text-white/70">Or <Link href="/search" className="font-semibold text-white underline">search all parts</Link> by name or part number.</p>
+            </>
+          )}
         </div>
       </section>
 
-      {/* ================= BROWSE POPULAR CATEGORIES ================= */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
-        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-2 border-b border-slate-800 pb-4">
-          <div>
-            <h2 className="text-2xl font-black text-white tracking-tight">Explore Top Categories</h2>
-            <p className="text-slate-400 text-xs mt-0.5">Filter genuine OEM and high-quality replacement parts</p>
-          </div>
-
-          <button
-            onClick={onNavigateToCatalog}
-            className="text-xs font-bold text-amber-400 hover:text-amber-300 flex items-center gap-1 hover:underline"
-          >
-            <span>View All Categories</span>
-            <ChevronRight className="w-4 h-4" />
-          </button>
-        </div>
-
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-4">
-          {CATEGORIES.map((cat) => (
-            <button
-              key={cat.id}
-              onClick={() => onNavigateToCatalog()}
-              className="group p-4 bg-slate-900/80 hover:bg-slate-850 rounded-2xl border border-slate-800 hover:border-amber-500/40 transition-all duration-300 text-left flex flex-col justify-between space-y-4 hover:shadow-lg hover:shadow-amber-500/5 hover:-translate-y-1 cursor-pointer"
-            >
-              <div className="w-12 h-12 rounded-xl bg-slate-950 border border-slate-800 group-hover:border-amber-500/40 flex items-center justify-center transition-colors">
-                {getCategoryIcon(cat.iconName)}
+      <section className="container-page mt-8">
+        <h2 className="mb-4 text-xl font-bold">Shop by category</h2>
+        <div className="-mx-4 flex snap-x gap-3 overflow-x-auto px-4 pb-2 sm:mx-0 sm:grid sm:grid-cols-2 sm:px-0 lg:grid-cols-4">
+          {categories.map((c) => (
+            <div key={c.id} className="card w-72 shrink-0 snap-start p-4 transition hover:shadow-md sm:w-auto">
+              <Link href={`/c/${c.slug}`} className="font-semibold hover:text-navy-700">{c.name}</Link>
+              <div className="mt-3 grid grid-cols-3 gap-2">
+                {c.children.slice(0, 3).map((ch) => (
+                  <Link key={ch.id} href={`/c/${ch.slug}`} className="group flex flex-col items-center gap-1 text-center">
+                    <span className="flex aspect-square w-full items-center justify-center rounded-lg bg-slate-50 p-2 group-hover:bg-brand-50">
+                      {ch.image && <img src={ch.image} alt="" className="size-full object-contain" />}
+                    </span>
+                    <span className="line-clamp-2 text-[11px] leading-tight text-slate-600 group-hover:text-slate-900">{ch.name}</span>
+                  </Link>
+                ))}
               </div>
-
-              <div>
-                <h3 className="text-xs font-bold text-white group-hover:text-amber-400 transition-colors line-clamp-1">
-                  {cat.name}
-                </h3>
-                <span className="text-[10px] text-slate-500 font-semibold block mt-0.5">
-                  {cat.count.toLocaleString()} Parts
-                </span>
-              </div>
-            </button>
+            </div>
           ))}
         </div>
       </section>
 
-      {/* ================= PRODUCT LISTING GRID SECTION ================= */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <ProductGrid
-          products={PRODUCTS}
-          onAddToCart={onAddToCart}
-          activeVehicle={activeVehicle}
-          searchQuery={searchQuery}
-          onClearFilters={() => setSearchQuery('')}
-        />
-      </div>
+      <Rail title={<><Zap className="size-5" /> Daily Deals</>} href="/deals" docs={deals} vehicle={vehicle} accent />
+      <Rail title={vehicle ? `Service parts for your ${vehicle.model}` : 'Service essentials'} href="/c/filters-service" docs={service} vehicle={vehicle} />
+      <Rail title={vehicle ? `Brakes for your ${vehicle.model}` : 'Brakes'} href="/c/brakes" docs={brakes} vehicle={vehicle} />
 
-      {/* ================= HARD-TO-FIND PART QUOTE BANNER ================= */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="relative rounded-3xl bg-gradient-to-r from-slate-900 via-slate-850 to-slate-900 border border-amber-500/30 p-8 sm:p-12 overflow-hidden shadow-2xl">
-          <div className="absolute -right-10 -bottom-10 w-96 h-96 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
-
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-center relative z-10">
-            <div className="lg:col-span-2 space-y-4">
-              <div className="inline-flex items-center gap-2 bg-amber-500/20 text-amber-300 border border-amber-500/40 px-3 py-1 rounded-full text-xs font-bold uppercase">
-                <Sparkles className="w-4 h-4 text-amber-400" />
-                <span>Can't Find Your Part Listed?</span>
-              </div>
-
-              <h2 className="text-2xl sm:text-4xl font-black text-white tracking-tight">
-                Get Competitive Quotes From <br className="hidden sm:inline" />
-                <span className="text-amber-400">500+ Verified South African Scrap Yards</span>
-              </h2>
-
-              <p className="text-slate-300 text-xs sm:text-sm leading-relaxed max-w-xl">
-                Enter your 17-character VIN or snap a picture of your broken part. Verified suppliers across Johannesburg, Cape Town, and Durban will quote you directly on WhatsApp or Email within 30 minutes.
-              </p>
-
-              {/* Recent Live Quotes Feed */}
-              <div className="pt-2 grid grid-cols-1 sm:grid-cols-3 gap-3">
-                {RECENT_QUOTES.map((q) => (
-                  <div key={q.id} className="p-3 bg-slate-950/80 rounded-xl border border-slate-800 text-[11px]">
-                    <div className="flex justify-between text-slate-400">
-                      <span className="font-bold text-amber-400">{q.vehicle}</span>
-                      <span>{q.timeAgo}</span>
-                    </div>
-                    <p className="text-white font-semibold line-clamp-1 mt-1">{q.part}</p>
-                    <div className="flex justify-between items-center mt-2 text-[10px] text-emerald-400 font-bold">
-                      <span>{q.status}</span>
-                      <span>From R {q.priceFromZAR}</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
+      <section className="container-page mt-12">
+        <h2 className="mb-4 text-xl font-bold">Why buy parts on WHATPART</h2>
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          {ADVANTAGES.map(({ icon: Icon, title, text }) => (
+            <div key={title} className="card p-5">
+              <Icon className="size-7 text-brand-600" />
+              <h3 className="mt-3 font-semibold">{title}</h3>
+              <p className="mt-1 text-sm text-slate-600">{text}</p>
             </div>
-
-            {/* Action Card */}
-            <div className="bg-slate-950 p-6 rounded-2xl border border-slate-800 text-center space-y-4">
-              <div className="w-14 h-14 rounded-2xl bg-amber-500/20 text-amber-400 border border-amber-500/40 flex items-center justify-center mx-auto">
-                <Car className="w-7 h-7" />
-              </div>
-              <div>
-                <h3 className="text-base font-bold text-white">Submit Part Sourcing Request</h3>
-                <p className="text-xs text-slate-400 mt-1">100% Free & No Obligation</p>
-              </div>
-
-              <button
-                onClick={onNavigateToQuote}
-                className="w-full py-3.5 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 font-black text-xs uppercase tracking-wider rounded-xl shadow-lg shadow-amber-500/20 transition cursor-pointer flex items-center justify-center gap-2"
-              >
-                <span>Request A Quote Now</span>
-                <ArrowRight className="w-4 h-4" />
-              </button>
-            </div>
-
-          </div>
+          ))}
         </div>
       </section>
 
-    </div>
+      {makes.length > 0 && (
+        <section className="container-page mt-12">
+          <h2 className="mb-4 text-xl font-bold">Popular makes</h2>
+          <div className="flex flex-wrap gap-2">
+            {makes.map((m) => (
+              <Link key={m.id} href={`/search?q=${encodeURIComponent(m.name)}&fit=0`} className="rounded-full border border-slate-300 bg-white px-4 py-2 text-sm font-medium hover:border-navy-700 hover:text-navy-700">
+                {m.name} parts
+              </Link>
+            ))}
+          </div>
+        </section>
+      )}
+
+      <section className="container-page mt-12 grid gap-4 lg:grid-cols-2">
+        <div className="rounded-2xl bg-brand-500 p-6 text-navy-950 sm:p-8">
+          <h2 className="text-2xl font-black">Can’t find your part?</h2>
+          <p className="mt-2 max-w-md">Tell us your vehicle and what you need. Spares shops, importers and salvage yards will send you quotes.</p>
+          <Link href="/quote" className="btn-dark mt-5">Request a part <ArrowRight className="size-4" /></Link>
+        </div>
+        <div className="rounded-2xl bg-navy-900 p-6 text-white sm:p-8">
+          <h2 className="flex items-center gap-2 text-2xl font-black"><Store className="size-6 text-brand-400" /> Sell on WHATPART</h2>
+          <p className="mt-2 max-w-md text-white/80">Reach buyers across South Africa. List your stock, we handle payments and customer service.</p>
+          <Link href="/sell" className="btn-primary mt-5">Become a seller <ArrowRight className="size-4" /></Link>
+        </div>
+      </section>
+    </>
   );
-};
+}
