@@ -43,7 +43,7 @@ export const productsIndex = (): Index<ProductDoc> => meili.index<ProductDoc>('p
 
 export const INDEX_SETTINGS = {
   searchableAttributes: ['title', 'partNumber', 'oemNumbers', 'brand', 'category', 'parentCategory', 'vehicles', 'specText'],
-  filterableAttributes: ['vehicleIds', 'universal', 'categorySlug', 'parentSlug', 'brand', 'conditions', 'inStock', 'priceCents', 'hasDeal', 'makes', 'ratingAvg'],
+  filterableAttributes: ['id', 'vehicleIds', 'universal', 'categorySlug', 'parentSlug', 'brand', 'conditions', 'inStock', 'priceCents', 'hasDeal', 'makes', 'ratingAvg'],
   sortableAttributes: ['priceCents', 'ratingAvg', 'createdAt', 'dispatchDays'],
   rankingRules: ['words', 'typo', 'proximity', 'attribute', 'sort', 'exactness', 'inStock:desc'],
   synonyms: {

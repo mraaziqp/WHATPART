@@ -4,13 +4,8 @@ import { useMemo, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { Car, Check, X } from 'lucide-react';
 import type { VehicleTree } from '@/lib/vehicle';
-
-const COOKIE = 'wp_vehicle';
-const setVehicleCookie = (value: string | null) => {
-  document.cookie = value
-    ? `${COOKIE}=${value}; path=/; max-age=${60 * 60 * 24 * 365}; samesite=lax`
-    : `${COOKIE}=; path=/; max-age=0`;
-};
+import { setVehicleCookie } from '@/lib/vehicle-cookie';
+import { rememberVehicle } from '@/app/account/actions';
 
 type Props = {
   tree: VehicleTree;
@@ -38,8 +33,10 @@ export function VehiclePicker({ tree, selectedLabel, variant = 'panel', onDone }
 
   const save = () => {
     if (!vehicle) return;
-    setVehicleCookie(`${vehicle.id}:${year || years[0]}`);
-    startTransition(() => {
+    const y = Number(year) || years[0];
+    setVehicleCookie(`${vehicle.id}:${y}`);
+    startTransition(async () => {
+      await rememberVehicle(vehicle.id, y); // no-op for guests
       router.refresh();
       onDone?.();
     });

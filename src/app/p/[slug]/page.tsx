@@ -11,6 +11,10 @@ import { railProducts } from '@/lib/product-search';
 import { BuyBox, type OfferView } from '@/components/product/BuyBox';
 import { ProductCard } from '@/components/product/ProductCard';
 import { Stars } from '@/components/product/Stars';
+import { WishlistButton } from '@/components/product/WishlistButton';
+import { ReviewForm } from '@/components/product/ReviewForm';
+import { getSessionUser } from '@/lib/session';
+import { canReview } from '@/app/account/actions';
 
 type Props = { params: Promise<{ slug: string }> };
 
@@ -41,9 +45,16 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 }
 
 export default async function ProductPage({ params }: Props) {
-  const [{ slug }, vehicle] = await Promise.all([params, getSelectedVehicle()]);
+  const [{ slug }, vehicle, user] = await Promise.all([params, getSelectedVehicle(), getSessionUser()]);
   const p = await getProduct(slug);
   if (!p || !p.active) notFound();
+  const [saved, mayReview, myReview] = user
+    ? await Promise.all([
+        db.wishlistItem.findUnique({ where: { userId_productId: { userId: user.id, productId: p.id } } }).then(Boolean),
+        canReview(user.id, p.id),
+        db.review.findUnique({ where: { productId_userId: { productId: p.id, userId: user.id } } }),
+      ])
+    : [false, false, null];
 
   const offers: (OfferView & { effective: number })[] = p.offers
     .map((o) => {
@@ -151,7 +162,10 @@ export default async function ProductPage({ params }: Props) {
 
         <div className="lg:sticky lg:top-36 lg:col-start-3 lg:row-span-2 lg:row-start-1">
           {offers.length > 0 ? (
-            <BuyBox offers={offers.map(({ effective: _e, ...o }) => o)} initialId={offers[0].id} />
+            <div className="space-y-3">
+              <BuyBox offers={offers.map(({ effective: _e, ...o }) => o)} initialId={offers[0].id} />
+              <WishlistButton productId={p.id} slug={p.slug} initialSaved={saved} />
+            </div>
           ) : (
             <div className="card space-y-3 p-5 text-center">
               <PackageSearch className="mx-auto size-8 text-slate-400" />
@@ -209,6 +223,15 @@ export default async function ProductPage({ params }: Props) {
 
         <section className="card p-5">
           <h2 className="mb-3 text-lg font-bold">Customer reviews</h2>
+          {mayReview && (
+            <div className="mb-4">
+              <ReviewForm
+                productId={p.id}
+                vehicles={p.fitments.map((f) => ({ id: f.vehicleId, label: vehicleLabel(f.vehicle) }))}
+                existing={myReview ? { rating: myReview.rating, title: myReview.title, body: myReview.body, vehicleId: myReview.vehicleId } : null}
+              />
+            </div>
+          )}
           {p.reviews.length === 0 ? (
             <p className="text-sm text-slate-600">No reviews yet. Reviews can only be written by customers who bought this part on WHATPART.</p>
           ) : (

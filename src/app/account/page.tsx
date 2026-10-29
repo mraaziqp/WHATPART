@@ -2,9 +2,7 @@ import Link from 'next/link';
 import { Package } from 'lucide-react';
 import { db } from '@/lib/db';
 import { requireUser } from '@/lib/session';
-import { getSellerForUser, isAdmin } from '@/lib/guards';
 import { formatRand } from '@/lib/format';
-import { SignOutButton } from './SignOutButton';
 
 export const metadata = { title: 'My account', robots: { index: false } };
 
@@ -20,7 +18,6 @@ const STATUS: Record<string, [string, string]> = {
 
 export default async function AccountPage() {
   const user = await requireUser('/account');
-  const [seller, admin] = await Promise.all([getSellerForUser(user.id), isAdmin(user.id)]);
   const orders = await db.order.findMany({
     // Only orders placed while signed in. Guest orders aren't matched by email because
     // email ownership isn't verified yet.
@@ -31,19 +28,7 @@ export default async function AccountPage() {
   });
 
   return (
-    <div className="container-page py-8">
-      <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-bold">Hi, {user.name.split(' ')[0]}</h1>
-          <p className="text-sm text-slate-600">{user.email}</p>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          {admin && <Link href="/admin" className="btn-dark">Admin</Link>}
-          <Link href={seller ? '/seller' : '/sell'} className="btn-outline">{seller ? 'Seller portal' : 'Sell on WHATPART'}</Link>
-          <SignOutButton />
-        </div>
-      </div>
-
+    <div>
       <h2 className="mb-3 text-lg font-bold">Your orders</h2>
       {orders.length === 0 ? (
         <div className="card flex flex-col items-center gap-3 p-10 text-center">

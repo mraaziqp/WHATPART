@@ -1,14 +1,27 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useTransition } from 'react';
 import Link from 'next/link';
-import { Car, ChevronDown, ShoppingCart, X } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { Car, Check, ChevronDown, ShoppingCart, X } from 'lucide-react';
+import { setVehicleCookie } from '@/lib/vehicle-cookie';
 import { useCartCount } from '@/lib/cart-store';
 import { VehiclePicker } from '@/components/vehicle/VehiclePicker';
 import type { VehicleTree } from '@/lib/vehicle';
 
-export function VehicleButton({ tree, label }: { tree: VehicleTree; label: string | null }) {
+type GarageItem = { value: string; label: string; active: boolean };
+
+export function VehicleButton({ tree, label, garage }: { tree: VehicleTree; label: string | null; garage: GarageItem[] }) {
   const [open, setOpen] = useState(false);
+  const router = useRouter();
+  const [switching, startSwitch] = useTransition();
+  const pick = (value: string) => {
+    setVehicleCookie(value);
+    startSwitch(() => {
+      router.refresh();
+      setOpen(false);
+    });
+  };
   useEffect(() => {
     document.body.style.overflow = open ? 'hidden' : '';
   }, [open]);
@@ -35,6 +48,27 @@ export function VehicleButton({ tree, label }: { tree: VehicleTree; label: strin
               <button onClick={() => setOpen(false)} aria-label="Close" className="rounded p-1 hover:bg-slate-100"><X className="size-5" /></button>
             </div>
             <p className="mb-4 text-sm text-slate-600">We’ll only show parts that fit, and flag anything that doesn’t.</p>
+            {garage.length > 0 && (
+              <div className="mb-4">
+                <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">My Garage</p>
+                <ul className="space-y-1.5">
+                  {garage.map((g) => (
+                    <li key={g.value}>
+                      <button
+                        onClick={() => pick(g.value)}
+                        disabled={switching || g.active}
+                        className={`flex w-full items-center justify-between gap-2 rounded-lg border px-3 py-2 text-left text-sm ${g.active ? 'border-emerald-400 bg-emerald-50' : 'border-slate-200 hover:border-slate-300'}`}
+                      >
+                        <span className="flex items-center gap-2"><Car className="size-4 text-slate-500" /> {g.label}</span>
+                        {g.active && <Check className="size-4 text-emerald-600" />}
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+                <Link href="/account/garage" onClick={() => setOpen(false)} className="mt-2 inline-block text-xs font-semibold text-navy-700 hover:underline">Manage garage</Link>
+                <p className="mt-4 mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">Or choose another vehicle</p>
+              </div>
+            )}
             <VehiclePicker tree={tree} selectedLabel={label} onDone={() => setOpen(false)} />
           </div>
         </div>

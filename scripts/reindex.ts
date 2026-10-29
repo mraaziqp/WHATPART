@@ -30,7 +30,9 @@ async function main() {
   // Atomically swap the fresh index in so search never goes empty during a rebuild.
   const exists = await meili.getIndex('products').then(() => true, () => false);
   if (!exists) await meili.createIndex('products', { primaryKey: 'id' }).waitTask();
-  await meili.swapIndexes([{ indexes: ['products', tmp], rename: false }]).waitTask();
+  // The meilisearch-js typings require `rename`, but the Meilisearch v1.16 server rejects that field.
+  const swap = { indexes: ['products', tmp] } as unknown as Parameters<typeof meili.swapIndexes>[0][number];
+  await meili.swapIndexes([swap]).waitTask();
   await meili.deleteIndex(tmp).waitTask();
   console.log(`Indexed ${total} products`);
 }

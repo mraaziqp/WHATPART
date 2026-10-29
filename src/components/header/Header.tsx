@@ -5,12 +5,25 @@ import { Logo } from '@/components/Logo';
 import { getCategoryTree } from '@/lib/categories';
 import { getSelectedVehicle, getVehicleTree } from '@/lib/vehicle';
 import { getSessionUser } from '@/lib/session';
+import { db } from '@/lib/db';
 import { SearchBox } from './SearchBox';
 import { CartButton, VehicleButton } from './HeaderClient';
 
 export async function Header() {
   const [tree, vehicle, categories, user] = await Promise.all([getVehicleTree(), getSelectedVehicle(), getCategoryTree(), getSessionUser()]);
   const vehicleLabel = vehicle ? `${vehicle.year} ${vehicle.label}` : null;
+  const garage = user
+    ? (await db.garageVehicle.findMany({
+        where: { userId: user.id },
+        include: { vehicle: { include: { model: { include: { make: true } } } } },
+        orderBy: [{ isPrimary: 'desc' }, { createdAt: 'desc' }],
+        take: 8,
+      })).map((g) => ({
+        value: `${g.vehicleId}:${g.year}`,
+        label: g.nickname || `${g.year} ${g.vehicle.model.make.name} ${g.vehicle.model.name} ${g.vehicle.engine}`,
+        active: vehicle?.id === g.vehicleId && vehicle.year === g.year,
+      }))
+    : [];
 
   return (
     <header className="sticky top-0 z-40 shadow-sm">
@@ -24,7 +37,7 @@ export async function Header() {
           </div>
           <div className="ml-auto flex items-center gap-1 md:ml-0">
             <div className="hidden max-w-56 sm:block">
-              <VehicleButton tree={tree} label={vehicleLabel} />
+              <VehicleButton tree={tree} label={vehicleLabel} garage={garage} />
             </div>
             <Link href={user ? '/account' : '/login'} className="flex items-center gap-2 rounded-lg px-2 py-1.5 text-white hover:bg-white/10">
               <User className="size-6" />
@@ -38,7 +51,7 @@ export async function Header() {
         </div>
         <div className="border-t border-white/10 sm:hidden">
           <div className="container-page py-1">
-            <VehicleButton tree={tree} label={vehicleLabel} />
+            <VehicleButton tree={tree} label={vehicleLabel} garage={garage} />
           </div>
         </div>
       </div>
