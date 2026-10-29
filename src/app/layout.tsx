@@ -2,6 +2,8 @@ import type { Metadata, Viewport } from 'next';
 import { Inter } from 'next/font/google';
 import { Header } from '@/components/header/Header';
 import { Footer } from '@/components/Footer';
+import { getThemeConfig } from '@/lib/theme';
+import { ThemeStyle } from '@/components/theme/ThemeStyle';
 import './globals.css';
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter', display: 'swap' });
@@ -17,11 +19,21 @@ export const metadata: Metadata = {
   icons: { icon: '/icon.svg' },
 };
 
-export const viewport: Viewport = { themeColor: '#0b2545' };
+export async function generateViewport(): Promise<Viewport> {
+  const theme = await getThemeConfig();
+  return {
+    themeColor: theme.headerBgColor,
+  };
+}
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  const theme = await getThemeConfig();
+
   return (
     <html lang="en-ZA" className={inter.variable}>
+      <head>
+        <ThemeStyle theme={theme} />
+      </head>
       <body className="flex min-h-screen flex-col">
         <Header />
         <main className="flex-1">{children}</main>

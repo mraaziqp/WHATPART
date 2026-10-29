@@ -3,11 +3,12 @@ import { db } from '@/lib/db';
 import { requireAdminPage } from '@/lib/guards';
 import { daysAgo, formatRand } from '@/lib/format';
 import { showDemoSellers } from '@/lib/catalog';
+import { getThemeConfig } from '@/lib/theme';
 
 export default async function AdminOverview() {
   await requireAdminPage();
   const since = daysAgo(30);
-  const [awaitingPayment, toShip, pendingSellers, openRequests, paid30, customers, liveOffers] = await Promise.all([
+  const [awaitingPayment, toShip, pendingSellers, openRequests, paid30, customers, liveOffers, theme] = await Promise.all([
     db.order.count({ where: { status: 'PENDING_PAYMENT' } }),
     db.order.count({ where: { status: { in: ['PAID', 'PROCESSING'] } } }),
     db.seller.count({ where: { status: 'PENDING' } }),
@@ -15,6 +16,7 @@ export default async function AdminOverview() {
     db.order.aggregate({ where: { status: { in: ['PAID', 'PROCESSING', 'SHIPPED', 'DELIVERED'] }, createdAt: { gte: since } }, _sum: { totalCents: true }, _count: true }),
     db.user.count(),
     db.offer.count({ where: { active: true, stock: { gt: 0 }, seller: { status: 'ACTIVE', isDemo: false } } }),
+    getThemeConfig(),
   ]);
 
   const tiles: [string, string | number, string, boolean?][] = [
@@ -36,6 +38,30 @@ export default async function AdminOverview() {
           </Link>
         ))}
       </div>
+
+      <div className="card p-5">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="text-xl">🇿🇦</span>
+              <h2 className="text-base font-bold text-slate-900">South African Storefront Appearance & Looks</h2>
+              <span className="rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-semibold text-emerald-800">
+                Active
+              </span>
+            </div>
+            <p className="mt-1 text-sm text-slate-600">
+              Active Theme: <span className="font-semibold text-slate-900">{theme.name}</span>
+              {' '}• Background: <span className="rounded bg-slate-100 px-1.5 py-0.5 font-mono text-xs">{theme.pageBgColor}</span>
+              {' '}• Primary: <span className="rounded bg-slate-100 px-1.5 py-0.5 font-mono text-xs">{theme.primaryColor}</span>
+              {' '}• Accent: <span className="rounded bg-slate-100 px-1.5 py-0.5 font-mono text-xs">{theme.accentColor}</span>
+            </p>
+          </div>
+          <Link href="/admin/appearance" className="btn-primary shrink-0">
+            Customize Colors & Looks →
+          </Link>
+        </div>
+      </div>
+
       <div className={`card p-4 text-sm ${showDemoSellers() ? 'border-amber-300 bg-amber-50' : ''}`}>
         <p className="font-semibold">Catalogue mode: {showDemoSellers() ? 'demo stock visible' : 'real sellers only'}</p>
         <p className="mt-1 text-slate-600">

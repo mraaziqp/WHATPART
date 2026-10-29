@@ -529,3 +529,14 @@ model QuoteResponse {
 
   @@unique([requestId, sellerId])
 }
+
+// ─── Site Settings & Appearance ─────────────────────────────────────────────
+
+model SiteSetting {
+  key       String   @id
+  value     String   @db.Text
+  updatedAt DateTime @updatedAt
+
+  @@map("site_setting")
+}
+

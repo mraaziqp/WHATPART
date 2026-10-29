@@ -1,0 +1,19 @@
+{
+  "name": "Mzansi Springbok (Green & Gold)",
+  "presetId": "springbok",
+  "primaryColor": "#063826",
+  "primaryHoverColor": "#0b4d35",
+  "headerBgColor": "#063826",
+  "footerBgColor": "#021a11",
+  "accentColor": "#ffb81c",
+  "accentHoverColor": "#e5a100",
+  "accentTextColor": "#062417",
+  "pageBgColor": "#f4f7f4",
+  "pageTextColor": "#0f172a",
+  "cardBgColor": "#ffffff",
+  "cardBorderColor": "#e2e8f0",
+  "cardRadius": "xl",
+  "showFlagStrip": true,
+  "showZaBadge": true,
+  "zaBadgeText": "Proudly South African"
+}

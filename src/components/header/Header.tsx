@@ -5,12 +5,19 @@ import { Logo } from '@/components/Logo';
 import { getCategoryTree } from '@/lib/categories';
 import { getSelectedVehicle, getVehicleTree } from '@/lib/vehicle';
 import { getSessionUser } from '@/lib/session';
+import { getThemeConfig } from '@/lib/theme';
 import { db } from '@/lib/db';
 import { SearchBox } from './SearchBox';
 import { CartButton, VehicleButton } from './HeaderClient';
 
 export async function Header() {
-  const [tree, vehicle, categories, user] = await Promise.all([getVehicleTree(), getSelectedVehicle(), getCategoryTree(), getSessionUser()]);
+  const [tree, vehicle, categories, user, theme] = await Promise.all([
+    getVehicleTree(),
+    getSelectedVehicle(),
+    getCategoryTree(),
+    getSessionUser(),
+    getThemeConfig(),
+  ]);
   const vehicleLabel = vehicle ? `${vehicle.year} ${vehicle.label}` : null;
   const garage = user
     ? (await db.garageVehicle.findMany({
@@ -27,9 +34,26 @@ export async function Header() {
 
   return (
     <header className="sticky top-0 z-40 shadow-sm">
-      <div className="bg-navy-900">
+      {theme.showFlagStrip && (
+        <div
+          className="h-1 w-full"
+          style={{
+            background:
+              'linear-gradient(90deg, #007749 0%, #007749 22%, #ffb81c 22%, #ffb81c 38%, #000000 38%, #000000 48%, #ffffff 48%, #ffffff 52%, #de3831 52%, #de3831 75%, #001489 75%, #001489 100%)',
+          }}
+          aria-hidden
+        />
+      )}
+      <div className="bg-navy-900 transition-colors duration-300">
         <div className="container-page flex flex-wrap items-center gap-x-4 gap-y-2 py-2.5 md:flex-nowrap">
-          <Logo />
+          <div className="flex items-center gap-3">
+            <Logo />
+            {theme.showZaBadge && (
+              <span className="hidden items-center gap-1.5 rounded-full border border-white/15 bg-black/25 px-2.5 py-0.5 text-[11px] font-semibold text-white/95 xl:inline-flex">
+                <span>🇿🇦</span> {theme.zaBadgeText || 'Proudly South African'}
+              </span>
+            )}
+          </div>
           <div className="order-last w-full md:order-none md:flex-1">
             <Suspense>
               <SearchBox />
