@@ -32,22 +32,53 @@ export async function Header() {
       }))
     : [];
 
+  const FlagStrip = () => (
+    <div
+      className="h-1 w-full"
+      style={{
+        background:
+          'linear-gradient(90deg, #007749 0%, #007749 22%, #ffb81c 22%, #ffb81c 38%, #000000 38%, #000000 48%, #ffffff 48%, #ffffff 52%, #de3831 52%, #de3831 75%, #001489 75%, #001489 100%)',
+      }}
+      aria-hidden
+    />
+  );
+
   return (
     <header className="sticky top-0 z-40 shadow-sm">
-      {theme.showFlagStrip && (
-        <div
-          className="h-1 w-full"
+      {/* ─── Top Announcement Bar ────────────────────────────────────────── */}
+      {theme.showAnnouncementBar && (
+        <aside
+          className="px-4 py-1.5 text-center text-xs font-semibold tracking-wide transition-colors"
           style={{
-            background:
-              'linear-gradient(90deg, #007749 0%, #007749 22%, #ffb81c 22%, #ffb81c 38%, #000000 38%, #000000 48%, #ffffff 48%, #ffffff 52%, #de3831 52%, #de3831 75%, #001489 75%, #001489 100%)',
+            backgroundColor: theme.announcementBg || '#021a11',
+            color: theme.announcementTextColor || '#ffb81c',
           }}
-          aria-hidden
-        />
+        >
+          {theme.announcementLink ? (
+            <Link href={theme.announcementLink} className="hover:underline">
+              {theme.announcementText}
+            </Link>
+          ) : (
+            <span>{theme.announcementText}</span>
+          )}
+        </aside>
       )}
+
+      {/* ─── South African National Flag Strip (Top) ────────────────────── */}
+      {theme.showFlagStrip && (theme.flagStripPosition === 'top' || theme.flagStripPosition === 'both') && (
+        <FlagStrip />
+      )}
+
+      {/* ─── Main Header Bar ─────────────────────────────────────────────── */}
       <div className="bg-navy-900 transition-colors duration-300">
         <div className="container-page flex flex-wrap items-center gap-x-4 gap-y-2 py-2.5 md:flex-nowrap">
           <div className="flex items-center gap-3">
-            <Logo />
+            <Logo
+              variant={theme.logoVariant}
+              height={theme.logoHeight}
+              compact={theme.logoCompact}
+              customUrl={theme.customLogoUrl}
+            />
             {theme.showZaBadge && (
               <span className="hidden items-center gap-1.5 rounded-full border border-white/15 bg-black/25 px-2.5 py-0.5 text-[11px] font-semibold text-white/95 xl:inline-flex">
                 <span>🇿🇦</span> {theme.zaBadgeText || 'Proudly South African'}
@@ -79,6 +110,13 @@ export async function Header() {
           </div>
         </div>
       </div>
+
+      {/* ─── South African National Flag Strip (Bottom) ─────────────────── */}
+      {theme.showFlagStrip && (theme.flagStripPosition === 'bottom' || theme.flagStripPosition === 'both') && (
+        <FlagStrip />
+      )}
+
+      {/* ─── Sub-Navigation & Categories ─────────────────────────────────── */}
       <nav className="border-b border-slate-200 bg-white" aria-label="Categories">
         <div className="container-page flex items-center gap-1 overflow-x-auto py-1.5 text-sm [scrollbar-width:none]">
           <Link href="/deals" className="shrink-0 rounded-md px-3 py-1.5 font-semibold text-red-600 hover:bg-red-50">Daily Deals</Link>
@@ -89,7 +127,7 @@ export async function Header() {
           ))}
           <Link href="/quote" className="shrink-0 rounded-md px-3 py-1.5 font-medium text-navy-800 hover:bg-slate-100">Request a part</Link>
           <span className="ml-auto hidden shrink-0 items-center gap-1.5 pl-4 text-xs text-slate-500 lg:flex">
-            <Truck className="size-4 text-emerald-600" /> Free delivery on orders over R1,500
+            <Truck className="size-4 text-emerald-600" /> {theme.deliveryNotice || 'Free delivery on orders over R1,500'}
           </span>
         </div>
       </nav>

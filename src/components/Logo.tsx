@@ -1,16 +1,78 @@
 import Link from 'next/link';
 
-export function Logo({ dark = false }: { dark?: boolean }) {
+export interface LogoProps {
+  dark?: boolean;
+  variant?: 'white' | 'dark' | 'gold' | 'custom';
+  height?: number;
+  compact?: boolean;
+  markOnly?: boolean;
+  customUrl?: string;
+  className?: string;
+  href?: string;
+}
+
+export function Logo({
+  dark = false,
+  variant,
+  height = 44,
+  compact = false,
+  markOnly = false,
+  customUrl,
+  className = '',
+  href = '/',
+}: LogoProps) {
+  // Determine effective variant: if dark background (header/footer/dark mode), default to white
+  const effectiveVariant = variant ?? (dark ? 'dark' : 'white');
+
+  let src = '/logo-white.png';
+  if (customUrl && effectiveVariant === 'custom') {
+    src = customUrl;
+  } else if (markOnly) {
+    src =
+      effectiveVariant === 'dark'
+        ? '/logo-mark-dark.png'
+        : effectiveVariant === 'gold'
+        ? '/logo-mark-gold.png'
+        : '/logo-mark-white.png';
+  } else if (compact) {
+    src =
+      effectiveVariant === 'dark'
+        ? '/logo-compact-dark.png'
+        : effectiveVariant === 'gold'
+        ? '/logo-compact-gold.png'
+        : '/logo-compact-white.png';
+  } else {
+    src =
+      effectiveVariant === 'dark'
+        ? '/logo-dark.png'
+        : effectiveVariant === 'gold'
+        ? '/logo-gold.png'
+        : '/logo-white.png';
+  }
+
+  // Calculate width based on aspect ratios
+  // Full: 825 x 317 (~2.60)
+  // Compact: 825 x 290 (~2.84)
+  // Mark: 825 x 225 (~3.66)
+  const ratio = markOnly ? 3.66 : compact ? 2.84 : 2.60;
+  const width = Math.round(height * ratio);
+
   return (
-    <Link href="/" className="flex shrink-0 items-center gap-2" aria-label="WHATPART home">
-      <svg viewBox="0 0 32 32" className="size-8" aria-hidden>
-        <rect width="32" height="32" rx="8" fill="var(--theme-brand-500, #ffb81c)" />
-        <path d="M16 7.5a8.5 8.5 0 1 0 0 17 8.5 8.5 0 0 0 0-17Zm0 5a3.5 3.5 0 1 1 0 7 3.5 3.5 0 0 1 0-7Z" fill="var(--theme-navy-900, #063826)" />
-        <path d="M16 4v4M16 24v4M4 16h4M24 16h4" stroke="var(--theme-navy-900, #063826)" strokeWidth="3" strokeLinecap="round" />
-      </svg>
-      <span className={`text-xl font-black tracking-tight ${dark ? 'text-navy-900' : 'text-white'}`}>
-        WHAT<span className="text-brand-500">PART</span>
-      </span>
+    <Link
+      href={href}
+      className={`inline-flex shrink-0 items-center transition-all duration-200 hover:opacity-90 active:scale-[0.99] ${className}`}
+      aria-label="WHATPART - Quality Auto Parts, to keep you in motion"
+    >
+      <img
+        src={src}
+        alt="WHATPART - Quality Auto Parts, to keep you in motion"
+        width={width}
+        height={height}
+        style={{ height: `${height}px`, width: 'auto' }}
+        className="block max-h-16 object-contain"
+        loading="eager"
+        decoding="async"
+      />
     </Link>
   );
 }

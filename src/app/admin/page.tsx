@@ -4,6 +4,8 @@ import { requireAdminPage } from '@/lib/guards';
 import { daysAgo, formatRand } from '@/lib/format';
 import { showDemoSellers } from '@/lib/catalog';
 import { getThemeConfig } from '@/lib/theme';
+import { Logo } from '@/components/Logo';
+import { Sparkles, Sliders } from 'lucide-react';
 
 export default async function AdminOverview() {
   await requireAdminPage();
@@ -41,23 +43,33 @@ export default async function AdminOverview() {
 
       <div className="card p-5">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="text-xl">🇿🇦</span>
-              <h2 className="text-base font-bold text-slate-900">South African Storefront Appearance & Looks</h2>
-              <span className="rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-semibold text-emerald-800">
-                Active
-              </span>
+          <div className="flex items-start gap-4">
+            <div className="hidden sm:flex size-14 items-center justify-center rounded-xl bg-slate-900 p-2 shadow-inner">
+              <Logo
+                variant={theme.logoVariant === 'dark' ? 'gold' : theme.logoVariant}
+                height={32}
+                compact={theme.logoCompact}
+                customUrl={theme.customLogoUrl}
+              />
             </div>
-            <p className="mt-1 text-sm text-slate-600">
-              Active Theme: <span className="font-semibold text-slate-900">{theme.name}</span>
-              {' '}• Background: <span className="rounded bg-slate-100 px-1.5 py-0.5 font-mono text-xs">{theme.pageBgColor}</span>
-              {' '}• Primary: <span className="rounded bg-slate-100 px-1.5 py-0.5 font-mono text-xs">{theme.primaryColor}</span>
-              {' '}• Accent: <span className="rounded bg-slate-100 px-1.5 py-0.5 font-mono text-xs">{theme.accentColor}</span>
-            </p>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="text-xl">🇿🇦</span>
+                <h2 className="text-base font-bold text-slate-900">Storefront Appearance & Live Studio</h2>
+                <span className="rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-semibold text-emerald-800">
+                  Live & Connected
+                </span>
+              </div>
+              <p className="mt-1 text-sm text-slate-600">
+                Theme: <span className="font-semibold text-slate-900">{theme.name}</span>
+                {' '}• Logo: <span className="capitalize font-semibold text-slate-900">{theme.logoVariant}</span>
+                {' '}• Background: <span className="rounded bg-slate-100 px-1.5 py-0.5 font-mono text-xs">{theme.pageBgColor}</span>
+                {' '}• Accent: <span className="rounded bg-slate-100 px-1.5 py-0.5 font-mono text-xs">{theme.accentColor}</span>
+              </p>
+            </div>
           </div>
-          <Link href="/admin/appearance" className="btn-primary shrink-0">
-            Customize Colors & Looks →
+          <Link href="/admin/appearance" className="btn-primary shrink-0 flex items-center gap-2">
+            <Sliders className="size-4" /> Open Live Customizer Studio →
           </Link>
         </div>
       </div>

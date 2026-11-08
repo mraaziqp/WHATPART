@@ -3,6 +3,7 @@ import { ArrowRight, BadgeCheck, CircleCheck, Recycle, Scale, Search, Store, Zap
 import { db } from '@/lib/db';
 import { getCategoryTree } from '@/lib/categories';
 import { getSelectedVehicle, getVehicleTree } from '@/lib/vehicle';
+import { getThemeConfig } from '@/lib/theme';
 import { activeDealFilter, railProducts } from '@/lib/product-search';
 import { VehiclePicker } from '@/components/vehicle/VehiclePicker';
 import { ProductCard } from '@/components/product/ProductCard';
@@ -34,11 +35,12 @@ const ADVANTAGES = [
 ];
 
 export default async function HomePage() {
-  const [vehicle, tree, categories, makes] = await Promise.all([
+  const [vehicle, tree, categories, makes, theme] = await Promise.all([
     getSelectedVehicle(),
     getVehicleTree(),
     getCategoryTree(),
     db.make.findMany({ where: { popular: true }, orderBy: { name: 'asc' } }),
+    getThemeConfig(),
   ]);
   const [deals, service, brakes] = await Promise.all([
     railProducts({ filter: [activeDealFilter()], limit: 5 }, vehicle),
@@ -48,7 +50,7 @@ export default async function HomePage() {
 
   return (
     <>
-      <section className="bg-gradient-to-br from-navy-900 via-navy-800 to-navy-700 text-white">
+      <section className="bg-gradient-to-br from-navy-900 via-navy-800 to-navy-700 text-white transition-colors duration-300">
         <div className="container-page py-10 sm:py-14">
           {vehicle ? (
             <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
@@ -64,8 +66,17 @@ export default async function HomePage() {
             </div>
           ) : (
             <>
-              <h1 className="max-w-3xl text-3xl font-black leading-tight sm:text-5xl">The right part for your car. <span className="text-brand-400">Delivered.</span></h1>
-              <p className="mt-3 max-w-2xl text-lg text-white/80">Tell us what you drive and we’ll only show parts that fit, from sellers across South Africa.</p>
+              {theme.heroBadgeText && (
+                <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-white/20 bg-black/25 px-3 py-1 text-xs font-semibold text-brand-400">
+                  {theme.heroBadgeText}
+                </div>
+              )}
+              <h1 className="max-w-3xl text-3xl font-black leading-tight sm:text-5xl">
+                {theme.heroHeadline || 'The right part for your car. Delivered.'}
+              </h1>
+              <p className="mt-3 max-w-2xl text-lg text-white/80">
+                {theme.heroSubheadline || 'Tell us what you drive and we’ll only show parts that fit, from sellers across South Africa.'}
+              </p>
               <div className="mt-6 rounded-2xl bg-white p-4 text-slate-900 shadow-2xl sm:p-5">
                 <VehiclePicker tree={tree} variant="hero" />
               </div>
