@@ -4,8 +4,9 @@ import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { db } from '@/lib/db';
 import { requireAdmin } from '@/lib/guards';
+import { setDemoSellersOverride } from '@/lib/catalog';
 import { syncOrderStatus } from '@/lib/orders';
-import { reindexProduct } from '@/lib/search';
+import { atomicReindexAll, reindexProduct } from '@/lib/search';
 
 export type ActionResult = { ok?: string; error?: string };
 
@@ -135,3 +136,46 @@ export async function endDeal(dealId: string): Promise<ActionResult> {
   revalidatePath('/admin/deals');
   return { ok: 'Deal ended' };
 }
+
+// ─── Search & System Controls ───────────────────────────────────────────────
+
+export async function triggerReindexAction(): Promise<ActionResult> {
+  await requireAdmin();
+  try {
+    const { count } = await atomicReindexAll();
+    revalidatePath('/admin');
+    return { ok: `Successfully reindexed ${count} products into Meilisearch.` };
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : 'Reindexing failed';
+    return { error: msg };
+  }
+}
+
+export async function toggleDemoSellersAction(show: boolean): Promise<ActionResult> {
+  await requireAdmin();
+  setDemoSellersOverride(show);
+  try {
+    await db.$executeRawUnsafe(`
+      CREATE TABLE IF NOT EXISTS site_setting (
+        key TEXT PRIMARY KEY,
+        value TEXT NOT NULL,
+        "updatedAt" TIMESTAMP DEFAULT NOW()
+      )
+    `);
+    await db.$executeRawUnsafe(
+      `
+      INSERT INTO site_setting (key, value, "updatedAt")
+      VALUES ('show_demo_sellers', $1, NOW())
+      ON CONFLICT (key) DO UPDATE
+      SET value = EXCLUDED.value, "updatedAt" = NOW()
+    `,
+      show ? 'true' : 'false'
+    );
+    revalidatePath('/', 'layout');
+    revalidatePath('/admin');
+    return { ok: show ? 'Demo sellers stock is now visible.' : 'Demo sellers stock is now hidden.' };
+  } catch (err: unknown) {
+    return { error: (err as Error).message };
+  }
+}
+

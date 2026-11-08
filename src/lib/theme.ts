@@ -21,7 +21,7 @@ export function sanitizeTheme(input: unknown): ThemeConfig {
     name: typeof t.name === 'string' && t.name ? t.name : DEFAULT_THEME.name,
     presetId:
       t.presetId &&
-      ['springbok', 'rainbow', 'kalahari', 'drakensberg', 'protea', 'midnight', 'custom'].includes(t.presetId)
+      ['springbok', 'rainbow', 'kalahari', 'drakensberg', 'protea', 'midnight', 'durban', 'soweto', 'custom'].includes(t.presetId)
         ? t.presetId
         : 'custom',
 

@@ -137,3 +137,37 @@ export async function reindexProduct(productId: string) {
   if (doc) await productsIndex().addDocuments([doc]);
   else await productsIndex().deleteDocument(productId);
 }
+
+/** Atomically reindex all active products in batches with zero search downtime. */
+export async function atomicReindexAll(): Promise<{ count: number }> {
+  const tmp = 'products_rebuild_' + Date.now();
+  await meili.deleteIndexIfExists(tmp);
+  await meili.createIndex(tmp, { primaryKey: 'id' }).waitTask();
+  const index = meili.index<ProductDoc>(tmp);
+  await index.updateSettings(INDEX_SETTINGS).waitTask();
+
+  let cursor: string | undefined;
+  let total = 0;
+  for (;;) {
+    const batch = await db.product.findMany({
+      where: { active: true },
+      take: 250,
+      ...(cursor ? { skip: 1, cursor: { id: cursor } } : {}),
+      orderBy: { id: 'asc' },
+      ...productForIndex,
+    });
+    if (batch.length === 0) break;
+    const docs = batch.map(toDoc).filter((d): d is ProductDoc => d !== null);
+    await index.addDocuments(docs).waitTask({ timeout: 120_000 });
+    total += docs.length;
+    cursor = batch[batch.length - 1].id;
+  }
+
+  const exists = await meili.getIndex('products').then(() => true, () => false);
+  if (!exists) await meili.createIndex('products', { primaryKey: 'id' }).waitTask();
+  const swap = { indexes: ['products', tmp] } as unknown as Parameters<typeof meili.swapIndexes>[0][number];
+  await meili.swapIndexes([swap]).waitTask();
+  await meili.deleteIndex(tmp).waitTask();
+  return { count: total };
+}
+
