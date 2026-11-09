@@ -5,7 +5,7 @@ import { daysAgo, formatRand } from '@/lib/format';
 import { showDemoSellers } from '@/lib/catalog';
 import { getThemeConfig } from '@/lib/theme';
 import { Logo } from '@/components/Logo';
-import { Sliders, RefreshCw, Eye, EyeOff, Sparkles, Store, Package } from 'lucide-react';
+import { Sliders, Store, Package } from 'lucide-react';
 import { ActionButton } from './ActionButton';
 import { triggerReindexAction, toggleDemoSellersAction } from './actions';
 

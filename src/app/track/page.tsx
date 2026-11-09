@@ -1,7 +1,8 @@
 import type { Metadata } from 'next';
-import { PackageSearch, Truck } from 'lucide-react';
+import { ExternalLink, PackageSearch, Truck } from 'lucide-react';
 import { db } from '@/lib/db';
 import { CONDITION_LABEL, formatRand } from '@/lib/format';
+import { getCourierTrackingUrl } from '@/lib/courier';
 
 export const metadata: Metadata = { title: 'Track your order', robots: { index: false } };
 
@@ -48,7 +49,25 @@ export default async function TrackPage({ searchParams }: Props) {
                 <div>
                   <p className="font-medium">{i.quantity} × {i.productTitle}</p>
                   <p className="text-xs text-slate-500">{CONDITION_LABEL[i.condition]}</p>
-                  {i.trackingRef && <p className="mt-1 flex items-center gap-1 text-xs"><Truck className="size-3.5" /> Courier tracking: <strong className="font-mono">{i.trackingRef}</strong></p>}
+                  {i.trackingRef && (
+                    <div className="mt-2 flex flex-wrap items-center gap-2">
+                      <p className="flex items-center gap-1 text-xs text-slate-700">
+                        <Truck className="size-3.5 text-brand-600" />
+                        <span>{i.courierName || 'Courier'}:</span>
+                        <strong className="font-mono">{i.trackingRef}</strong>
+                      </p>
+                      {getCourierTrackingUrl(i.courierName, i.trackingRef) && (
+                        <a
+                          href={getCourierTrackingUrl(i.courierName, i.trackingRef)!}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1 rounded bg-brand-50 px-2 py-0.5 text-xs font-semibold text-brand-700 hover:bg-brand-100 transition"
+                        >
+                          Track parcel <ExternalLink className="size-3" />
+                        </a>
+                      )}
+                    </div>
+                  )}
                 </div>
                 <span className="text-xs font-semibold text-slate-700">{ITEM_STATUS[i.status]}</span>
               </li>

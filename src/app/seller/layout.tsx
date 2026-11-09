@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { Clock, LayoutDashboard, MessageSquareQuote, Package, PlusCircle, ShieldOff, Tags } from 'lucide-react';
+import { Clock, LayoutDashboard, MessageSquareQuote, Package, PlusCircle, ShieldOff, Tags, Wallet } from 'lucide-react';
 import { requireSellerPage } from '@/lib/guards';
 import { Logo } from '@/components/Logo';
 
@@ -10,6 +10,7 @@ const NAV = [
   ['/seller/listings', 'Listings', Tags],
   ['/seller/listings/new', 'Add a part', PlusCircle],
   ['/seller/orders', 'Orders', Package],
+  ['/seller/finance', 'Wallet & Payouts', Wallet],
   ['/seller/requests', 'Part requests', MessageSquareQuote],
 ] as const;
 

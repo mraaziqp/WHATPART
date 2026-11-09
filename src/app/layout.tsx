@@ -16,7 +16,15 @@ export const metadata: Metadata = {
   description:
     'Shop brake pads, filters, batteries, suspension and more for your exact vehicle. Compare sellers, check fitment, and get parts delivered anywhere in South Africa.',
   openGraph: { type: 'website', siteName: 'WHATPART', locale: 'en_ZA' },
-  icons: { icon: '/icon.png', apple: '/icon.png' },
+  icons: {
+    icon: [
+      { url: '/favicon.ico', sizes: 'any' },
+      { url: '/icon.png', type: 'image/png', sizes: '512x512' },
+      { url: '/icon.svg', type: 'image/svg+xml' },
+    ],
+    apple: [{ url: '/icon.png', sizes: '180x180', type: 'image/png' }],
+    shortcut: '/favicon.ico',
+  },
 };
 
 export async function generateViewport(): Promise<Viewport> {

@@ -305,12 +305,18 @@ model Seller {
   commissionBps Int             @default(1200) // 12%
   ratingAvg     Float           @default(0)
   ratingCount   Int             @default(0)
+  bankName      String?
+  bankAccount   String?
+  bankBranch    String?
+  bankAccountType String?
   createdAt     DateTime        @default(now())
 
   offers        Offer[]
   orderItems    OrderItem[]
   quoteReplies  QuoteResponse[]
   products      Product[]       @relation("SellerProducts")
+  transactions  SellerTransaction[]
+  payouts       SellerPayout[]
 }
 
 enum Condition {
@@ -436,8 +442,11 @@ model OrderItem {
   unitCents    Int
   quantity     Int
   status       ItemStatus @default(PENDING)
+  courierName  String?
   trackingRef  String?
   cancelReason String?
+
+  transactions SellerTransaction[]
 
   @@index([orderId])
   @@index([sellerId])
@@ -484,6 +493,7 @@ model Review {
   rating           Int
   title            String
   body             String
+  images           String[] @default([])
   verifiedPurchase Boolean  @default(false)
   createdAt        DateTime @default(now())
 
@@ -538,5 +548,68 @@ model SiteSetting {
   updatedAt DateTime @updatedAt
 
   @@map("site_setting")
+}
+
+// ─── Seller Financial Ledger & Payouts ──────────────────────────────────────
+
+enum LedgerType {
+  ORDER_CREDIT
+  COMMISSION_DEBIT
+  PAYOUT_DEBIT
+  REFUND_DEBIT
+  ADJUSTMENT
+}
+
+enum LedgerStatus {
+  PENDING_CLEARANCE
+  AVAILABLE
+  SETTLED
+  CANCELLED
+}
+
+model SellerTransaction {
+  id          String       @id @default(cuid())
+  reference   String       @unique
+  sellerId    String
+  seller      Seller       @relation(fields: [sellerId], references: [id], onDelete: Cascade)
+  orderItemId String?
+  orderItem   OrderItem?   @relation(fields: [orderItemId], references: [id], onDelete: SetNull)
+  type        LedgerType
+  status      LedgerStatus @default(PENDING_CLEARANCE)
+  amountCents Int
+  description String
+  availableAt DateTime
+  createdAt   DateTime     @default(now())
+
+  @@index([sellerId, status])
+  @@index([orderItemId])
+  @@map("seller_transaction")
+}
+
+enum PayoutStatus {
+  REQUESTED
+  APPROVED
+  PROCESSING
+  COMPLETED
+  REJECTED
+}
+
+model SellerPayout {
+  id            String       @id @default(cuid())
+  reference     String       @unique
+  sellerId      String
+  seller        Seller       @relation(fields: [sellerId], references: [id], onDelete: Cascade)
+  amountCents   Int
+  status        PayoutStatus @default(REQUESTED)
+  bankName      String
+  accountNumber String
+  accountType   String
+  branchCode    String
+  adminNotes    String?
+  requestedAt   DateTime     @default(now())
+  processedAt   DateTime?
+
+  @@index([sellerId])
+  @@map("seller_payout")
 }
 

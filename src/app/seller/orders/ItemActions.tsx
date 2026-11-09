@@ -7,6 +7,7 @@ import { acceptItem, cancelItem, shipItem } from '../actions';
 export function ItemActions({ itemId, status, canShip }: { itemId: string; status: string; canShip: boolean }) {
   const [pending, start] = useTransition();
   const [msg, setMsg] = useState<{ ok?: string; error?: string }>({});
+  const [courier, setCourier] = useState('The Courier Guy');
   const [tracking, setTracking] = useState('');
   const [cancelling, setCancelling] = useState(false);
   const [reason, setReason] = useState('');
@@ -21,8 +22,30 @@ export function ItemActions({ itemId, status, canShip }: { itemId: string; statu
         )}
         {canShip && (
           <>
-            <input value={tracking} onChange={(e) => setTracking(e.target.value)} placeholder="Courier tracking number" className="input w-52 py-1.5" />
-            <button disabled={pending} onClick={() => run(() => shipItem(itemId, tracking))} className="btn-dark py-1.5">Mark shipped</button>
+            <select
+              value={courier}
+              onChange={(e) => setCourier(e.target.value)}
+              className="select w-44 py-1.5 text-xs"
+              aria-label="Courier provider"
+            >
+              <option value="The Courier Guy">The Courier Guy</option>
+              <option value="RAM Overnight">RAM Overnight</option>
+              <option value="Pargo">Pargo</option>
+              <option value="Other">Other Courier</option>
+            </select>
+            <input
+              value={tracking}
+              onChange={(e) => setTracking(e.target.value)}
+              placeholder="Waybill / Tracking #"
+              className="input w-48 py-1.5 text-xs"
+            />
+            <button
+              disabled={pending || !tracking.trim()}
+              onClick={() => run(() => shipItem(itemId, tracking, courier))}
+              className="btn-dark py-1.5 text-xs"
+            >
+              Mark shipped
+            </button>
           </>
         )}
         {!cancelling && <button onClick={() => setCancelling(true)} className="text-sm text-slate-500 hover:text-red-600">Can’t fulfil</button>}

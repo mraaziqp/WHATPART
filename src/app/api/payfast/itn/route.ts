@@ -1,5 +1,6 @@
 import { db } from '@/lib/db';
 import { confirmWithPayfast, isPayfastIp, payfastConfig, signature } from '@/lib/payfast';
+import { recordOrderPaymentToLedger } from '@/lib/ledger';
 import { reindexProduct } from '@/lib/search';
 
 // PayFast Instant Transaction Notification. Always answer 200 once handled so PayFast stops retrying;
@@ -38,6 +39,7 @@ export async function POST(req: Request) {
         .filter((i) => i.offerId)
         .map((i) => db.offer.update({ where: { id: i.offerId! }, data: { stock: { decrement: i.quantity } } })),
     ]);
+    await recordOrderPaymentToLedger(order.id);
     // Keep search results' stock/price current; failures here must not fail the payment.
     const offers = await db.offer.findMany({ where: { id: { in: order.items.flatMap((i) => (i.offerId ? [i.offerId] : [])) } }, select: { productId: true, stock: true, id: true } });
     for (const o of offers) {

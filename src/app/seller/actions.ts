@@ -7,6 +7,8 @@ import { db } from '@/lib/db';
 import { requireActiveSeller } from '@/lib/guards';
 import { syncOrderStatus } from '@/lib/orders';
 import { reindexProduct } from '@/lib/search';
+import { generateReference } from '@/lib/ledger-math';
+import { getSellerLedgerSummary } from '@/lib/ledger';
 import { slugify } from '@/lib/slug';
 import { fieldErrors } from '@/lib/validation';
 
@@ -178,14 +180,21 @@ export async function cancelItem(itemId: string, reason: string): Promise<FormSt
   return { ok: 'Item cancelled' };
 }
 
-export async function shipItem(itemId: string, tracking: string): Promise<FormState> {
+export async function shipItem(itemId: string, tracking: string, courierName?: string): Promise<FormState> {
   const { seller } = await requireActiveSeller();
   const ref = tracking.trim().slice(0, 60);
   if (ref.length < 4) return { error: 'Enter the courier tracking number.' };
   const item = await ownItem(seller.id, itemId);
   if (!item || !['PENDING', 'ACCEPTED'].includes(item.status)) return { error: 'This item can’t be shipped.' };
   if (!['PAID', 'PROCESSING', 'SHIPPED'].includes(item.order.status)) return { error: 'Wait until the order is paid before shipping.' };
-  await db.orderItem.update({ where: { id: itemId }, data: { status: 'SHIPPED', trackingRef: ref } });
+  await db.orderItem.update({
+    where: { id: itemId },
+    data: {
+      status: 'SHIPPED',
+      trackingRef: ref,
+      courierName: courierName?.trim().slice(0, 60) || 'The Courier Guy',
+    },
+  });
   await syncOrderStatus(item.order.id);
   revalidatePath('/seller/orders');
   return { ok: 'Marked as shipped' };
@@ -215,4 +224,87 @@ export async function respondToRequest(_prev: FormState, form: FormData): Promis
   if (request.status === 'OPEN') await db.quoteRequest.update({ where: { id: requestId }, data: { status: 'QUOTED' } });
   revalidatePath('/seller/requests');
   return { ok: 'Quote sent' };
+}
+
+// ─── Financials & Payouts ───────────────────────────────────────────────────
+
+const BankingSchema = z.object({
+  bankName: z.string().trim().min(2, 'Enter your bank name').max(60),
+  accountNumber: z.string().trim().min(6, 'Enter a valid account number').max(20),
+  accountType: z.enum(['Current', 'Cheque', 'Savings', 'Transmission']),
+  branchCode: z.string().trim().min(4, 'Enter a valid branch code').max(10),
+});
+
+export async function updateBankingDetails(_prev: FormState, form: FormData): Promise<FormState> {
+  const { seller } = await requireActiveSeller();
+  const parsed = BankingSchema.safeParse(Object.fromEntries(form));
+  if (!parsed.success) return { error: parsed.error.issues[0].message };
+
+  await db.seller.update({
+    where: { id: seller.id },
+    data: {
+      bankName: parsed.data.bankName,
+      bankAccount: parsed.data.accountNumber,
+      bankAccountType: parsed.data.accountType,
+      bankBranch: parsed.data.branchCode,
+    },
+  });
+
+  revalidatePath('/seller/finance');
+  return { ok: 'Banking details updated successfully' };
+}
+
+export async function requestPayoutAction(_prev: FormState, form: FormData): Promise<FormState> {
+  const { seller } = await requireActiveSeller();
+  const fullSeller = await db.seller.findUnique({
+    where: { id: seller.id },
+    select: { bankName: true, bankAccount: true, bankAccountType: true, bankBranch: true },
+  });
+
+  if (!fullSeller?.bankName || !fullSeller?.bankAccount) {
+    return { error: 'Please save your South African banking details before requesting a payout.' };
+  }
+
+  const rawAmount = String(form.get('amount') ?? '').replace(/[^\d.]/g, '');
+  const amountRands = parseFloat(rawAmount);
+  if (isNaN(amountRands) || amountRands < 100) {
+    return { error: 'Minimum payout request is R 100.' };
+  }
+  const amountCents = Math.round(amountRands * 100);
+
+  const summary = await getSellerLedgerSummary(seller.id);
+  if (amountCents > summary.availableCents) {
+    return { error: `Insufficient cleared balance. Maximum available for payout: R ${(summary.availableCents / 100).toFixed(2)}` };
+  }
+
+  const reference = generateReference('PO');
+
+  await db.$transaction([
+    db.sellerPayout.create({
+      data: {
+        reference,
+        sellerId: seller.id,
+        amountCents,
+        status: 'REQUESTED',
+        bankName: fullSeller.bankName,
+        accountNumber: fullSeller.bankAccount,
+        accountType: fullSeller.bankAccountType || 'Current',
+        branchCode: fullSeller.bankBranch || 'Generic',
+      },
+    }),
+    db.sellerTransaction.create({
+      data: {
+        reference: generateReference('TX'),
+        sellerId: seller.id,
+        type: 'PAYOUT_DEBIT',
+        status: 'PENDING_CLEARANCE',
+        amountCents,
+        description: `Payout request ${reference} to ${fullSeller.bankName}`,
+        availableAt: new Date(),
+      },
+    }),
+  ]);
+
+  revalidatePath('/seller/finance');
+  return { ok: `Payout request ${reference} submitted for admin processing` };
 }

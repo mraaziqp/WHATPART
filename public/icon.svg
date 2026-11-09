@@ -1,1 +1,13 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><rect width="32" height="32" rx="8" fill="#ffb81c"/><path d="M16 7.5a8.5 8.5 0 1 0 0 17 8.5 8.5 0 0 0 0-17Zm0 5a3.5 3.5 0 1 1 0 7 3.5 3.5 0 0 1 0-7Z" fill="#063826"/><path d="M16 4v4M16 24v4M4 16h4M24 16h4" stroke="#063826" stroke-width="3" stroke-linecap="round"/></svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <rect width="512" height="512" rx="112" fill="#063826"/>
+  <!-- Sports car silhouette in white with gold wheel accent -->
+  <path d="M40 280 C60 250, 110 230, 160 210 C210 190, 290 190, 360 220 C420 245, 470 270, 485 295 C460 295, 430 290, 380 290 C340 290, 310 295, 270 295 C230 295, 170 300, 140 310 C120 317, 80 340, 50 350 C38 335, 35 305, 40 280 Z" fill="#ffffff"/>
+  <path d="M150 240 C200 205, 270 200, 340 225 C310 235, 270 240, 220 242 C185 243, 160 241, 150 240 Z" fill="#ffb81c"/>
+  <path d="M120 370 C120 340, 145 315, 175 315 C205 315, 230 340, 230 370 C230 400, 205 425, 175 425 C145 425, 120 400, 120 370 Z" fill="#ffffff"/>
+  <circle cx="175" cy="370" r="30" fill="#063826"/>
+  <circle cx="175" cy="370" r="14" fill="#ffb81c"/>
+  <path d="M350 370 C350 340, 375 315, 405 315 C435 315, 460 340, 460 370 C460 400, 435 425, 405 425 C375 425, 350 400, 350 370 Z" fill="#ffffff"/>
+  <circle cx="405" cy="370" r="30" fill="#063826"/>
+  <circle cx="405" cy="370" r="14" fill="#ffb81c"/>
+  <text x="256" y="475" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-weight="900" font-size="34" fill="#ffb81c" letter-spacing="2">WHATPART</text>
+</svg>

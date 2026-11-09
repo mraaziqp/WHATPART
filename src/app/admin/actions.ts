@@ -6,6 +6,7 @@ import { db } from '@/lib/db';
 import { requireAdmin } from '@/lib/guards';
 import { setDemoSellersOverride } from '@/lib/catalog';
 import { syncOrderStatus } from '@/lib/orders';
+import { recordOrderPaymentToLedger } from '@/lib/ledger';
 import { atomicReindexAll, reindexProduct } from '@/lib/search';
 
 export type ActionResult = { ok?: string; error?: string };
@@ -36,6 +37,7 @@ export async function markOrderPaid(orderId: string, reference: string): Promise
   ]);
   // Never leave negative stock behind if two orders raced for the last unit.
   await db.offer.updateMany({ where: { id: { in: live.map((i) => i.offerId!) }, stock: { lt: 0 } }, data: { stock: 0 } });
+  await recordOrderPaymentToLedger(orderId);
   await syncOrderStatus(orderId);
   await reindexOffers(live.map((i) => i.offerId!));
   revalidatePath('/admin/orders');

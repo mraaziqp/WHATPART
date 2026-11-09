@@ -10,6 +10,19 @@ import { db } from '@/lib/db';
 import { SearchBox } from './SearchBox';
 import { CartButton, VehicleButton } from './HeaderClient';
 
+function FlagStrip() {
+  return (
+    <div
+      className="h-1 w-full"
+      style={{
+        background:
+          'linear-gradient(90deg, #007749 0%, #007749 22%, #ffb81c 22%, #ffb81c 38%, #000000 38%, #000000 48%, #ffffff 48%, #ffffff 52%, #de3831 52%, #de3831 75%, #001489 75%, #001489 100%)',
+      }}
+      aria-hidden
+    />
+  );
+}
+
 export async function Header() {
   const [tree, vehicle, categories, user, theme] = await Promise.all([
     getVehicleTree(),
@@ -31,17 +44,6 @@ export async function Header() {
         active: vehicle?.id === g.vehicleId && vehicle.year === g.year,
       }))
     : [];
-
-  const FlagStrip = () => (
-    <div
-      className="h-1 w-full"
-      style={{
-        background:
-          'linear-gradient(90deg, #007749 0%, #007749 22%, #ffb81c 22%, #ffb81c 38%, #000000 38%, #000000 48%, #ffffff 48%, #ffffff 52%, #de3831 52%, #de3831 75%, #001489 75%, #001489 100%)',
-      }}
-      aria-hidden
-    />
-  );
 
   return (
     <header className="sticky top-0 z-40 shadow-sm">
